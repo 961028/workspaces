@@ -184,9 +184,17 @@ function createSavedListItem(workspace, currentWindowId) {
   }
   li.innerHTML = `<span class="label">${workspace.title || "(No Title)"}</span>`;
 
-  li.addEventListener("click", () =>
-    sendMessage({ action: "openWorkspace", workspaceId: parseInt(workspace.id, 10) })
-  );
+  // Only open workspace on click if not currently dragging
+  let pointerDragging = false;
+  li.addEventListener("pointerdown", () => { pointerDragging = false; });
+  li.addEventListener("pointermove", () => { pointerDragging = true; });
+  li.addEventListener("pointerup", (e) => {
+    if (!pointerDragging) {
+      sendMessage({ action: "openWorkspace", workspaceId: parseInt(workspace.id, 10) });
+    }
+    pointerDragging = false;
+  });
+
   li.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     showContextMenu(e, workspace.id);
@@ -523,7 +531,7 @@ let items = []; // Cached list of items
  * Constant for the gap between items (should match CSS gap)
  * @constant {number}
  */
-const ITEMS_GAP = 10;
+const ITEMS_GAP = 4; // Gap between items in pixels
 
 /**
  * Sets up the pointer-based drag-and-drop widget for the saved workspaces list.
