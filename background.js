@@ -252,7 +252,7 @@ async function handleUnsaveWorkspace(workspaceId, sendResponse) {
 }
 
 /**
- * Renames a workspace by setting a custom title.
+ * Renames a workspace by setting a custom title and updates the window's title.
  * @param {number} workspaceId - The workspace's ID.
  * @param {string} newTitle - The new title for the workspace.
  * @param {Function} sendResponse - Callback to send the response.
@@ -264,8 +264,21 @@ async function handleRenameWorkspace(workspaceId, newTitle, sendResponse) {
     if (!workspaces[workspaceId]) {
       return sendResponse({ success: false, error: "Workspace not found." });
     }
+
+    // Update the workspace title
     workspaces[workspaceId].customTitle = newTitle;
     workspaces[workspaceId].title = newTitle;
+
+    // If the workspace has an associated window, update the window's title
+    if (workspaces[workspaceId].windowId) {
+      try {
+        await browser.windows.update(workspaces[workspaceId].windowId, { titlePreface: newTitle });
+        console.info(`Updated window title for workspace ${workspaceId} to "${newTitle}"`);
+      } catch (error) {
+        console.warn(`Failed to update window title for workspace ${workspaceId}:`, error);
+      }
+    }
+
     await setWorkspaces(workspaces, nextId);
     console.info(`Renamed workspace ${workspaceId} to ${newTitle}`);
     sendResponse({ success: true });
