@@ -78,7 +78,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function initPopup() {
   try {
     createContextMenu();
-    setDragDropListeners();
     await loadState();
     document.addEventListener("click", hideContextMenu);
     await setInitialStyle();
@@ -150,6 +149,8 @@ function updateSavedList(saved, currentWindowId) {
   const list = getDomElement("saved-list");
   if (!list) return;
   list.innerHTML = "";
+  list.classList.add("js-list"); // Add class for pointer-based drag-and-drop
+
   if (!Array.isArray(saved) || saved.length === 0) {
     list.innerHTML = "<li>(No saved workspaces)</li>";
     return;
@@ -159,6 +160,9 @@ function updateSavedList(saved, currentWindowId) {
   saved.forEach((ws) => {
     list.appendChild(createSavedListItem(ws, currentWindowId));
   });
+
+  // Re-initialize pointer-based drag-and-drop after DOM update
+  setupPointerDnD();
 }
 
 /**
@@ -174,18 +178,12 @@ function createSavedListItem(workspace, currentWindowId) {
   }
   const li = document.createElement("li");
   li.dataset.wsid = workspace.id;
-  li.className = "saved-item";
+  li.className = "saved-item js-item is-idle"; // Add js-item and is-idle for pointer-based DnD
   if (workspace.windowId && workspace.windowId === currentWindowId) {
     li.classList.add("highlight");
   }
   li.innerHTML = `<span class="label">${workspace.title || "(No Title)"}</span>`;
 
-  // Attach drag-and-drop and click event listeners (each handled by their own functions)
-  li.setAttribute("draggable", "true");
-  li.addEventListener("dragstart", handleDragStart);
-  li.addEventListener("dragover", handleDragOver);
-  li.addEventListener("drop", handleDrop);
-  li.addEventListener("dragend", handleDragEnd);
   li.addEventListener("click", () =>
     sendMessage({ action: "openWorkspace", workspaceId: parseInt(workspace.id, 10) })
   );
@@ -399,74 +397,6 @@ browser.theme.onUpdated.addListener(async ({ theme, windowId }) => {
 
 // ===== DRAG AND DROP HANDLERS =====
 /**
- * Handles drag start for saved workspace items.
- * @param {DragEvent} e - The drag event.
- */
-function handleDragStart(e) {
-  if (!e?.dataTransfer || !e.currentTarget) return;
-  e.dataTransfer.setData("workspaceId", e.currentTarget.dataset.wsid);
-  e.dataTransfer.effectAllowed = "move";
-}
-
-/**
- * Handles drag over events.
- * @param {DragEvent} e - The drag event.
- */
-function handleDragOver(e) {
-  if (e) {
-    e.preventDefault();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = "move";
-    }
-  }
-}
-
-/**
- * Handles drop events for reordering saved workspace items.
- * Delegates the reordering logic to the reorderItem helper function.
- * @param {DragEvent} e - The drop event.
- */
-function handleDrop(e) {
-  if (!e) return;
-  e.preventDefault();
-  
-  const draggedWsId = e.dataTransfer.getData("workspaceId");
-  if (!draggedWsId) {
-    const unsavedWindowId = e.dataTransfer.getData("unsavedWindowId");
-    if (unsavedWindowId) {
-      sendMessage({ action: "saveWindow", windowId: parseInt(unsavedWindowId, 10) });
-    }
-    return;
-  }
-  
-  const targetWsId = e.currentTarget.dataset.wsid;
-  if (draggedWsId === targetWsId) return; // No reordering if dropped on itself.
-
-  const savedList = getDomElement("saved-list");
-  if (!savedList) {
-    console.error("Saved list element not found for drop event.");
-    return;
-  }
-  
-  const draggedItem = savedList.querySelector(`[data-wsid='${draggedWsId}']`);
-  const targetItem = savedList.querySelector(`[data-wsid='${targetWsId}']`);
-  if (draggedItem && targetItem) {
-    reorderItem(savedList, draggedItem, targetItem, e.clientY);
-    persistSavedOrder();
-  } else {
-    console.warn("Dragged or target element not found during drop.");
-  }
-}
-
-/**
- * Placeholder for any necessary cleanup after drag events.
- * @param {DragEvent} e - The drag end event.
- */
-function handleDragEnd(e) {
-  // Reserved for optional cleanup
-}
-
-/**
  * Handles drag start for unsaved window items.
  * @param {DragEvent} e - The drag event.
  */
@@ -489,27 +419,6 @@ function persistSavedOrder() {
     parseInt(item.dataset.wsid, 10)
   );
   sendMessage({ action: "updateOrder", newOrder: order });
-}
-
-/**
- * Attaches drag-and-drop listeners to the saved workspaces list.
- */
-function setDragDropListeners() {
-  const savedList = getDomElement("saved-list");
-  if (!savedList) {
-    console.warn("Saved list element not found for drag and drop.");
-    return;
-  }
-  savedList.addEventListener("dragover", (e) => {
-    e.preventDefault();
-  });
-  savedList.addEventListener("drop", (e) => {
-    e.preventDefault();
-    const unsavedWindowId = e.dataTransfer.getData("unsavedWindowId");
-    if (unsavedWindowId) {
-      sendMessage({ action: "saveWindow", windowId: parseInt(unsavedWindowId, 10) });
-    }
-  });
 }
 
 // ===== EXPORT & IMPORT FUNCTIONALITY =====
@@ -589,4 +498,271 @@ function setupExportImportButtons() {
   importBtn.textContent = "Import Workspaces";
   importBtn.addEventListener("click", () => fileInput.click());
   container.appendChild(importBtn);
+}
+
+// ===== ADVANCED DRAG-AND-DROP WIDGET (EXPERIMENTAL) =====
+/**
+ * This section implements a pointer-based drag-and-drop reordering widget for list items.
+ * It is modular and does not interfere with the existing drag-and-drop logic above.
+ *
+ * To use, add the 'js-list' class to a <ul> or <ol> and 'js-item' to its <li> children.
+ *
+ * All logic is self-contained and follows the project's coding standards.
+ */
+
+'use strict';
+
+// Global variables and cached elements for the widget
+let listContainer = null; // The container element for the draggable list
+let draggableItem = null; // The item currently being dragged
+let pointerStartX = 0; // X position where pointer started
+let pointerStartY = 0; // Y position where pointer started
+let items = []; // Cached list of items
+
+/**
+ * Constant for the gap between items (should match CSS gap)
+ * @constant {number}
+ */
+const ITEMS_GAP = 10;
+
+/**
+ * Sets up the pointer-based drag-and-drop widget for the saved workspaces list.
+ * Ensures only one event listener is attached at a time.
+ */
+function setupPointerDnD() {
+  const list = getDomElement("saved-list");
+  if (!list) return;
+  // Remove previous pointerdown listeners by replacing the node is problematic.
+  // Instead, remove all pointerdown listeners by setting listContainer and using a fresh event listener.
+  listContainer = list;
+  // Remove any previous pointerdown event (by replacing the handler)
+  list.onpointerdown = null;
+  list.addEventListener('pointerdown', pointerDownHandler);
+}
+
+/**
+ * Handler for pointerdown events. Initializes dragging of the entire list item.
+ * @param {PointerEvent} e - The pointer event.
+ */
+function pointerDownHandler(e) {
+  // Use closest to select the list item even if a child is clicked
+  draggableItem = e.target.closest('.js-item');
+  if (!draggableItem) return;
+  pointerStartX = e.clientX;
+  pointerStartY = e.clientY;
+
+  disablePageScroll();
+  initDraggableItem();
+  initItemsState();
+
+  // Capture all pointer events to the draggable item
+  draggableItem.setPointerCapture(e.pointerId);
+  draggableItem.addEventListener('pointermove', pointerMoveHandler);
+  draggableItem.addEventListener('pointerup', pointerUpHandler);
+  draggableItem.addEventListener('pointercancel', pointerUpHandler);
+}
+
+/**
+ * Handler for pointermove events. Updates the draggable item's position and reorders idle items.
+ * @param {PointerEvent} e - The pointer event.
+ */
+function pointerMoveHandler(e) {
+  if (!draggableItem) return;
+  // Prevent default behavior (e.g. scrolling or unwanted text selection)
+  e.preventDefault();
+  const currentX = e.clientX;
+  const currentY = e.clientY;
+  const offsetX = currentX - pointerStartX;
+  const offsetY = currentY - pointerStartY;
+
+  // Update draggable item’s position using CSS transform
+  draggableItem.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+
+  updateIdleItemsStateAndPosition();
+}
+
+/**
+ * Handler for pointerup (or pointercancel) events. Finalizes the drag operation, applies the new order, and cleans up.
+ * @param {PointerEvent} e - The pointer event.
+ */
+function pointerUpHandler(e) {
+  if (!draggableItem) return;
+  draggableItem.removeEventListener('pointermove', pointerMoveHandler);
+  draggableItem.removeEventListener('pointerup', pointerUpHandler);
+  draggableItem.removeEventListener('pointercancel', pointerUpHandler);
+  draggableItem.releasePointerCapture(e.pointerId);
+
+  applyNewItemsOrder();
+  persistSavedOrder(); // Persist order after pointer-based drag-and-drop
+  cleanup();
+}
+
+/**
+ * Activates the draggable item by switching its state.
+ */
+function initDraggableItem() {
+  if (!draggableItem) return;
+  draggableItem.classList.remove('is-idle');
+  draggableItem.classList.add('is-draggable');
+}
+
+/**
+ * Initializes state for idle items relative to the draggable item.
+ */
+function initItemsState() {
+  getIdleItems().forEach((item, index) => {
+    if (getAllItems().indexOf(draggableItem) > index) {
+      item.dataset.isAbove = 'true';
+    }
+  });
+}
+
+/**
+ * Updates the toggled state and visual position of idle items during dragging.
+ */
+function updateIdleItemsStateAndPosition() {
+  if (!draggableItem) return;
+  const draggableRect = draggableItem.getBoundingClientRect();
+  const draggableCenterY = draggableRect.top + draggableRect.height / 2;
+  // Update toggled state for each idle item based on its center relative to draggable center
+  getIdleItems().forEach((item) => {
+    const itemRect = item.getBoundingClientRect();
+    const itemCenterY = itemRect.top + itemRect.height / 2;
+    if (isItemAbove(item)) {
+      if (draggableCenterY <= itemCenterY) {
+        item.dataset.isToggled = 'true';
+      } else {
+        delete item.dataset.isToggled;
+      }
+    } else {
+      if (draggableCenterY >= itemCenterY) {
+        item.dataset.isToggled = 'true';
+      } else {
+        delete item.dataset.isToggled;
+      }
+    }
+  });
+
+  // Adjust position of idle items based on toggle state
+  getIdleItems().forEach((item) => {
+    if (isItemToggled(item)) {
+      const direction = isItemAbove(item) ? 1 : -1;
+      item.style.transform = `translateY(${direction * (draggableRect.height + ITEMS_GAP)}px)`;
+    } else {
+      item.style.transform = '';
+    }
+  });
+}
+
+/**
+ * Retrieves and caches all list items.
+ * @returns {HTMLElement[]} Array of list items.
+ */
+function getAllItems() {
+  // Always get fresh items from the current listContainer
+  if (!listContainer) return [];
+  items = Array.from(listContainer.querySelectorAll('.js-item'));
+  return items;
+}
+
+/**
+ * Retrieves idle (non-dragged) items.
+ * @returns {HTMLElement[]} Array of idle list items.
+ */
+function getIdleItems() {
+  return getAllItems().filter((item) => item.classList.contains('is-idle'));
+}
+
+/**
+ * Checks if an idle item was originally above the draggable item.
+ * @param {HTMLElement} item - The item element.
+ * @returns {boolean} True if the item was originally above.
+ */
+function isItemAbove(item) {
+  return item.hasAttribute('data-is-above');
+}
+
+/**
+ * Checks if an idle item is toggled during dragging.
+ * @param {HTMLElement} item - The item element.
+ * @returns {boolean} True if the item is toggled.
+ */
+function isItemToggled(item) {
+  return item.hasAttribute('data-is-toggled');
+}
+
+/**
+ * Applies the new order to the list items based on their toggle states.
+ */
+function applyNewItemsOrder() {
+  const reorderedItems = [];
+  getAllItems().forEach((item, index) => {
+    if (item === draggableItem) return;
+    if (!isItemToggled(item)) {
+      reorderedItems[index] = item;
+    } else {
+      const newIndex = isItemAbove(item) ? index + 1 : index - 1;
+      reorderedItems[newIndex] = item;
+    }
+  });
+
+  for (let index = 0; index < getAllItems().length; index++) {
+    if (typeof reorderedItems[index] === 'undefined') {
+      reorderedItems[index] = draggableItem;
+    }
+  }
+
+  reorderedItems.forEach((item) => {
+    listContainer.appendChild(item);
+  });
+}
+
+/**
+ * Resets the draggable item back to its idle state.
+ */
+function unsetDraggableItem() {
+  if (!draggableItem) return;
+  draggableItem.style.transform = '';
+  draggableItem.classList.remove('is-draggable');
+  draggableItem.classList.add('is-idle');
+  draggableItem = null;
+}
+
+/**
+ * Clears toggle states and inline styles from idle items.
+ */
+function unsetItemState() {
+  getIdleItems().forEach((item) => {
+    delete item.dataset.isAbove;
+    delete item.dataset.isToggled;
+    item.style.transform = '';
+  });
+}
+
+/**
+ * Disables page scroll and text selection during dragging.
+ */
+function disablePageScroll() {
+  document.body.style.overflow = 'hidden';
+  document.body.style.touchAction = 'none';
+  document.body.style.userSelect = 'none';
+}
+
+/**
+ * Re-enables page scroll and text selection after dragging.
+ */
+function enablePageScroll() {
+  document.body.style.overflow = '';
+  document.body.style.touchAction = '';
+  document.body.style.userSelect = '';
+}
+
+/**
+ * Performs cleanup actions after the drag operation.
+ */
+function cleanup() {
+  items = [];
+  unsetDraggableItem();
+  unsetItemState();
+  enablePageScroll();
 }
