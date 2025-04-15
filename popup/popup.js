@@ -5,6 +5,18 @@
  */
 const STATUS_DISPLAY_TIME = 3000;
 
+/**
+ * Gap between items in pixels for pointer-based drag-and-drop.
+ * @constant {number}
+ */
+const ITEMS_GAP = 4;
+
+/**
+ * Default download filename for workspace export.
+ * @constant {string}
+ */
+const EXPORT_FILENAME = "workspace_backup.json";
+
 // ===== HELPER FUNCTIONS =====
 /**
  * Retrieves a DOM element by its ID and logs a warning if it is not found.
@@ -443,7 +455,7 @@ async function exportWorkspaces() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "workspace_backup.json";
+      a.download = EXPORT_FILENAME; // Use constant for filename
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -526,12 +538,6 @@ let draggableItem = null; // The item currently being dragged
 let pointerStartX = 0; // X position where pointer started
 let pointerStartY = 0; // Y position where pointer started
 let items = []; // Cached list of items
-
-/**
- * Constant for the gap between items (should match CSS gap)
- * @constant {number}
- */
-const ITEMS_GAP = 4; // Gap between items in pixels
 
 /**
  * Sets up the pointer-based drag-and-drop widget for the saved workspaces list.
@@ -655,7 +661,7 @@ function updateIdleItemsStateAndPosition() {
   getIdleItems().forEach((item) => {
     if (isItemToggled(item)) {
       const direction = isItemAbove(item) ? 1 : -1;
-      item.style.transform = `translateY(${direction * (draggableRect.height + ITEMS_GAP)}px)`;
+      item.style.transform = `translateY(${direction * (draggableRect.height + ITEMS_GAP)}px)`; // Use constant for gap
     } else {
       item.style.transform = '';
     }
