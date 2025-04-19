@@ -272,8 +272,13 @@ async function handleRenameWorkspace(workspaceId, newTitle, sendResponse) {
     // If the workspace has an associated window, update the window's title
     if (workspaces[workspaceId].windowId) {
       try {
-        await browser.windows.update(workspaces[workspaceId].windowId, { titlePreface: newTitle });
-        console.info(`Updated window title for workspace ${workspaceId} to "${newTitle}"`);
+        const tabs = await browser.tabs.query({ windowId: workspaces[workspaceId].windowId });
+        const activeTab = tabs.find((tab) => tab.active) || tabs[0];
+        const tabTitle = activeTab?.title || "Untitled Tab";
+        const fullTitle = `${newTitle} - `;
+
+        await browser.windows.update(workspaces[workspaceId].windowId, { titlePreface: fullTitle });
+        console.info(`Updated window title for workspace ${workspaceId} to "${fullTitle}"`);
       } catch (error) {
         console.warn(`Failed to update window title for workspace ${workspaceId}:`, error);
       }
