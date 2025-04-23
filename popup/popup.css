@@ -41,11 +41,6 @@ body {
   margin-bottom: var(--space-16);
 }
 
-h2 {
-  font-size: var(--font-size-medium);
-  margin-bottom: var(--space-4);
-}
-
 ul {
   list-style: none;
   padding: 0;
