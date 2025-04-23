@@ -194,7 +194,13 @@ function createSavedListItem(workspace, currentWindowId) {
   if (workspace.windowId && workspace.windowId === currentWindowId) {
     li.classList.add("highlight");
   }
-  li.innerHTML = `<span class="label">${workspace.title || "(No Title)"}</span>`;
+
+  // Add favicon and title
+  const faviconUrl = workspace.favicon || "default-favicon.png"; // Fallback to a default favicon
+  li.innerHTML = `
+    <img src="${faviconUrl}" alt="Favicon" class="favicon">
+    <span class="label">${workspace.title || "(No Title)"}</span>
+  `;
 
   // Only open workspace on click if not currently dragging
   let pointerDragging = false;
