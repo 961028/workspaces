@@ -195,12 +195,24 @@ function createSavedListItem(workspace, currentWindowId) {
     li.classList.add("highlight");
   }
 
-  // Add favicon and title
-  const faviconUrl = workspace.favicon || "default-favicon.png"; // Fallback to a default favicon
+  // Add favicon and title (async for live favicon)
   li.innerHTML = `
-    <img src="${faviconUrl}" alt="Favicon" class="favicon">
+    <img src="default-favicon.png" alt="Favicon" class="favicon">
     <span class="label">${workspace.title || "(No Title)"}</span>
   `;
+  if (workspace.windowId) {
+    // Try to get the current favicon from the active tab of the window
+    browser.tabs.query({ windowId: workspace.windowId, active: true }).then((tabs) => {
+      if (tabs && tabs[0] && tabs[0].favIconUrl) {
+        const img = li.querySelector(".favicon");
+        if (img) img.src = tabs[0].favIconUrl;
+      }
+    }).catch(() => {});
+  } else if (workspace.favicon) {
+    // Fallback to stored favicon if available
+    const img = li.querySelector(".favicon");
+    if (img) img.src = workspace.favicon;
+  }
 
   // Only open workspace on click if not currently dragging
   let pointerDragging = false;
@@ -257,8 +269,16 @@ function createUnsavedListItem(win, currentWindowId) {
   if (win.windowId && win.windowId === currentWindowId) {
     li.classList.add("highlight");
   }
-  li.innerHTML = `<span class="label">${win.title || "(Error: No Title)"}</span>
+  // Add favicon and title (async for live favicon)
+  li.innerHTML = `<img src="default-favicon.png" alt="Favicon" class="favicon">
+                  <span class="label">${win.title || "(Error: No Title)"}</span>
                   <button class="save-btn" data-wid="${win.windowId}">Save</button>`;
+  browser.tabs.query({ windowId: win.windowId, active: true }).then((tabs) => {
+    if (tabs && tabs[0] && tabs[0].favIconUrl) {
+      const img = li.querySelector(".favicon");
+      if (img) img.src = tabs[0].favIconUrl;
+    }
+  }).catch(() => {});
 
   li.setAttribute("draggable", "true");
   li.addEventListener("dragstart", handleDragStartUnsaved);

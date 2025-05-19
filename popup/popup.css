@@ -1,26 +1,38 @@
+/* =========================
+   Color Variables
+   ========================= */
 :root {
+  /* Popup Colors */
   --popup: transparent;
   --popup_border: transparent;
   --popup_highlight: transparent;
   --popup_highlight_text: transparent;
   --popup_text: transparent;
 
+  /* Toolbar & Misc */
   --toolbar: transparent;
   --test: transparent;
-}
 
-:root {
+  /* Derived Popup Colors */
   --popup_light: color-mix(in display-p3, var(--popup), var(--popup_text) 16.86%);
   --popup_lighter: color-mix(in display-p3, var(--popup), var(--popup_text) 30%);
 }
 
+/* =========================
+   Typography & Sizing
+   ========================= */
 :root {
   --font-size-small: 12px;
   --font-size-medium: 16px;
 
   --border-radius-small: 4px;
   --border-radius-medium: 8px;
+}
 
+/* =========================
+   Spacing Variables
+   ========================= */
+:root {
   --space-4: 4px;
   --space-8: 8px;
   --space-12: 12px;
@@ -29,15 +41,21 @@
   --space-24: 24px;
 }
 
+/* =========================
+   Base Styles
+   ========================= */
 body {
   background-color: var(--popup);
   color: var(--popup_text);
   font-family: sans-serif;
   font-size: var(--font-size-medium);
-  width: 400px;
   padding: var(--space-8);
+  width: 400px;
 }
 
+/* =========================
+   Headings & Sections
+   ========================= */
 .section {
   margin-bottom: var(--space-16);
 }
@@ -47,18 +65,21 @@ h2 {
   margin-bottom: var(--space-4);
 }
 
+/* =========================
+   List Styles
+   ========================= */
 ul {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
 li {
-  display: flex;
   align-items: center;
-  padding: var(--space-8);
-  margin: var(--space-4);
   border-radius: var(--border-radius-medium);
+  display: flex;
+  margin: var(--space-4);
+  padding: var(--space-8);
 }
 
 li:hover {
@@ -70,84 +91,98 @@ li:hover {
   border: 1px solid var(--popup_border);
 }
 
+/* =========================
+   Label Styles
+   ========================= */
 .label {
   flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   margin-right: var(--space-8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* =========================
+   Button Styles
+   ========================= */
 button {
   background-color: transparent;
-  color: var(--popup_text);
   border: none;
-  padding: var(--space-8) var(--space-12);
   border-radius: var(--border-radius-small);
+  color: var(--popup_text);
   cursor: pointer;
+  padding: var(--space-8) var(--space-12);
 }
 
 button:hover {
   background-color: var(--popup_lighter);
 }
 
+/* =========================
+   Status Messages
+   ========================= */
 #status {
-  margin-top: var(--space-8);
   font-weight: bold;
+  margin-top: var(--space-8);
   text-align: center;
 }
 
-.success {
-  color: var(--popup_text);
-  border: none;
-  padding: var(--space-8);
-  border-radius: var(--border-radius-medium);
-  font-size: var(--font-size-small);
-}
-
+.success,
 .error {
-  color: var(--popup_text);
   border: none;
-  padding: var(--space-8);
   border-radius: var(--border-radius-medium);
+  color: var(--popup_text);
   font-size: var(--font-size-small);
+  padding: var(--space-8);
 }
 
-/* ---- Custom Context Menu Styles ---- */
-
+/* =========================
+   Custom Context Menu
+   ========================= */
 #context-menu {
-  position: absolute;
-  display: none;
   background-color: var(--toolbar);
-  padding: var(--space-8);
-  z-index: 1000;
-  border-radius: var(--border-radius-medium);
-  border-color: var(--test);
   border: 1px solid var(--test);
+  border-color: var(--test);
+  border-radius: var(--border-radius-medium);
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  display: none;
+  padding: var(--space-8);
+  position: absolute;
+  z-index: 1000;
 }
 
 #context-menu .context-menu-item {
-  padding: var(--space-8);
+  color: var(--popup_text);
   cursor: pointer;
   font-size: var(--font-size-small);
-  color: var(--popup_text);
+  padding: var(--space-8);
 }
 
 #context-menu .context-menu-item:hover {
   background-color: var(--bg-300);
 }
 
-/* ---- New Stuff ---- */
-
+/* =========================
+   Saved Items & Dragging
+   ========================= */
 .saved-item {
   border: 1px solid var(--popup_light);
 }
 
 .js-item {
-  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .js-item.is-draggable {
   transition: none !important;
+}
+
+/* =========================
+   Favicon
+   ========================= */
+.favicon {
+  height: 24px;
+  margin-right: var(--space-8);
+  object-fit: contain;
+  width: 24px;
 }
