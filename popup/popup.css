@@ -182,7 +182,7 @@ button:hover {
    ========================= */
 .favicon {
   height: 24px;
-  margin-right: var(--space-8);
+  margin-right: var(--space-16);
   object-fit: contain;
   width: 24px;
 }
