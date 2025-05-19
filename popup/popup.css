@@ -111,7 +111,7 @@ button {
   border-radius: var(--border-radius-small);
   color: var(--popup_text);
   cursor: pointer;
-  padding: var(--space-8) var(--space-12);
+  padding: var(--space-4) var(--space-8);
 }
 
 button:hover {
@@ -182,7 +182,7 @@ button:hover {
    ========================= */
 .favicon {
   height: 24px;
-  margin-right: var(--space-16);
+  margin-right: var(--space-12);
   object-fit: contain;
   width: 24px;
 }
