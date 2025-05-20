@@ -14,8 +14,11 @@
   --test: transparent;
 
   /* Derived Popup Colors */
+  --popup_medium: color-mix(in display-p3, var(--popup), var(--popup_text) 8%);
   --popup_light: color-mix(in display-p3, var(--popup), var(--popup_text) 16.86%);
   --popup_lighter: color-mix(in display-p3, var(--popup), var(--popup_text) 30%);
+  
+  --shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* =========================
@@ -78,17 +81,43 @@ li {
   align-items: center;
   border-radius: var(--border-radius-medium);
   display: flex;
-  margin: var(--space-4);
+  margin: var(--space-8);
   padding: var(--space-8);
 }
 
 li:hover {
   background-color: var(--popup_light);
+  outline: none;
+  box-shadow: var(--shadow);
+}
+
+.saved-item {
+  outline: 1px solid var(--popup_medium);
 }
 
 .highlight {
-  background-color: var(--popup_light);
-  border: 1px solid var(--popup_border);
+  background-color: var(--popup_lighter);
+  outline: none;
+  box-shadow: var(--shadow);
+}
+
+.favicon {
+  height: 24px;
+  margin-right: var(--space-12);
+  object-fit: contain;
+  width: 24px;
+}
+
+/* =========================
+   Dragging
+   ========================= */
+
+.js-item {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.js-item.is-draggable {
+  transition: none !important;
 }
 
 /* =========================
@@ -160,29 +189,4 @@ button:hover {
 
 #context-menu .context-menu-item:hover {
   background-color: var(--bg-300);
-}
-
-/* =========================
-   Saved Items & Dragging
-   ========================= */
-.saved-item {
-  border: 1px solid var(--popup_light);
-}
-
-.js-item {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.js-item.is-draggable {
-  transition: none !important;
-}
-
-/* =========================
-   Favicon
-   ========================= */
-.favicon {
-  height: 24px;
-  margin-right: var(--space-12);
-  object-fit: contain;
-  width: 24px;
 }
