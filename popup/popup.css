@@ -56,13 +56,15 @@ body {
   width: 400px;
 }
 
-/* =========================
-   Headings & Sections
-   ========================= */
-.section {
-  margin-bottom: var(--space-16);
+hr {
+  border: none;
+  border-top: 1px solid var(--popup_medium);
+  margin: var(--space-16) 0;
 }
 
+/* =========================
+   Headings
+   ========================= */
 h2 {
   font-size: var(--font-size-medium);
   margin-bottom: var(--space-4);

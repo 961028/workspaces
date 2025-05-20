@@ -269,7 +269,19 @@ function createSavedListItem(workspace, currentWindowId) {
  */
 function updateUnsavedList(unsaved, currentWindowId) {
   const list = getDomElement("unsaved-list");
+  const hr = document.querySelector("hr");
   if (!list) return;
+
+  // Dynamically show or hide the <hr> element
+  if (unsaved && unsaved.length > 0) {
+    if (!hr) {
+      const newHr = document.createElement("hr");
+      list.parentNode.insertBefore(newHr, list);
+    }
+  } else if (hr) {
+    hr.remove();
+  }
+
   list.innerHTML = "";
   if (!Array.isArray(unsaved) || unsaved.length === 0) {
     list.innerHTML = "<li>(No unsaved windows)</li>";
