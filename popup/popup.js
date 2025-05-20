@@ -199,6 +199,7 @@ function createSavedListItem(workspace, currentWindowId) {
   li.innerHTML = `
     <img src="default-favicon.png" alt="Favicon" class="favicon">
     <span class="label">${workspace.title || "(No Title)"}</span>
+    <button class="edit-btn" data-wsid="${workspace.id}">Edit</button>
   `;
   if (workspace.windowId) {
     // Try to get the current favicon from the active tab of the window
@@ -216,9 +217,23 @@ function createSavedListItem(workspace, currentWindowId) {
 
   // Only open workspace on click if not currently dragging
   let pointerDragging = false;
-  li.addEventListener("pointerdown", () => { pointerDragging = false; });
-  li.addEventListener("pointermove", () => { pointerDragging = true; });
+  li.addEventListener("pointerdown", (e) => { 
+    // If pointerdown is on the edit button, do not reset pointerDragging
+    if (e.target.closest(".edit-btn")) return;
+    pointerDragging = false; 
+  });
+  li.addEventListener("pointermove", (e) => { 
+    // If pointermove is on the edit button, do not set pointerDragging
+    if (e.target.closest(".edit-btn")) return;
+    pointerDragging = true; 
+  });
   li.addEventListener("pointerup", (e) => {
+    // If pointerup is on the edit button, do not open workspace
+    if (e.target.closest(".edit-btn")) return;
+    // Prevent opening workspace if context menu is open
+    if (contextMenuEl && contextMenuEl.style.display === "block") {
+      return;
+    }
     if (!pointerDragging) {
       sendMessage({ action: "openWorkspace", workspaceId: parseInt(workspace.id, 10) });
     }
@@ -229,6 +244,19 @@ function createSavedListItem(workspace, currentWindowId) {
     e.preventDefault();
     showContextMenu(e, workspace.id);
   });
+
+  const editBtn = li.querySelector(".edit-btn");
+  if (editBtn) {
+    editBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const rect = editBtn.getBoundingClientRect();
+      showContextMenu(
+        { clientX: rect.left, clientY: rect.bottom, preventDefault: () => {} },
+        parseInt(workspace.id, 10)
+      );
+    });
+  }
 
   return li;
 }
@@ -301,6 +329,7 @@ function createUnsavedListItem(win, currentWindowId) {
 
 // ===== CUSTOM CONTEXT MENU =====
 let contextMenuEl; // Global context menu element
+let contextMenuOpenForWorkspaceId = null; // Track which workspace the context menu is open for
 
 /**
  * Creates and appends the custom context menu to the document body.
@@ -339,6 +368,7 @@ function showContextMenu(e, workspaceId) {
   contextMenuEl.style.top = `${e.clientY}px`;
   contextMenuEl.style.display = "block";
   contextMenuEl.dataset.wsid = workspaceId;
+  contextMenuOpenForWorkspaceId = workspaceId;
 }
 
 /**
@@ -347,6 +377,7 @@ function showContextMenu(e, workspaceId) {
 function hideContextMenu() {
   if (contextMenuEl) {
     contextMenuEl.style.display = "none";
+    contextMenuOpenForWorkspaceId = null;
   } else {
     console.warn("Context menu element is not defined.");
   }
