@@ -22,6 +22,7 @@ const orderedFiles = [
   'theme.js',
   'dnd.js',
   'pointer_dnd.js',
+  'popup_ui_helpers.js',
 ];
 
 // Get all .js files in popup/, except popup.js itself

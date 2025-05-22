@@ -49,28 +49,39 @@ function createUnsavedListItem(win, currentWindowId) {
   li.innerHTML = `<img src="default-favicon.png" alt="Favicon" class="favicon">
                   <span class="label">${win.title || "(Error: No Title)"}</span>
                   <button class="save-btn" data-wid="${win.windowId}">Save</button>`;
-  browser.tabs.query({ windowId: win.windowId, active: true }).then((tabs) => {
-    if (tabs && tabs[0] && tabs[0].favIconUrl) {
-      const img = li.querySelector(".favicon");
-      if (img) img.src = tabs[0].favIconUrl;
-    }
-  }).catch(() => { });
 
-  li.setAttribute("draggable", "true");
-  li.addEventListener("dragstart", handleDragStartUnsaved);
+  // Use shared helper for favicon
+  if (window.popupUiHelpers && window.popupUiHelpers.setFavicon) {
+    window.popupUiHelpers.setFavicon(li, win.windowId, "default-favicon.png");
+  }
 
-  // Separate click behavior for focusing vs. saving.
-  li.addEventListener("click", (e) => {
-    if (e.target.classList.contains("save-btn")) return;
-    sendMessage({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
-  });
-
-  const saveBtn = li.querySelector(".save-btn");
-  if (saveBtn) {
-    saveBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      sendMessage({ action: "saveWindow", windowId: parseInt(win.windowId, 10) });
+  // Use shared helper for events
+  if (window.popupUiHelpers && window.popupUiHelpers.addListItemEvents) {
+    window.popupUiHelpers.addListItemEvents(li, {
+      onDragStart: handleDragStartUnsaved,
+      onClick: () => {
+        sendMessage({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
+      },
+      buttonSelector: ".save-btn",
+      onButtonClick: () => {
+        sendMessage({ action: "saveWindow", windowId: parseInt(win.windowId, 10) });
+      }
     });
+  } else {
+    // Fallback to legacy event logic if helpers not loaded
+    li.setAttribute("draggable", "true");
+    li.addEventListener("dragstart", handleDragStartUnsaved);
+    li.addEventListener("click", (e) => {
+      if (e.target.classList.contains("save-btn")) return;
+      sendMessage({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
+    });
+    const saveBtn = li.querySelector(".save-btn");
+    if (saveBtn) {
+      saveBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        sendMessage({ action: "saveWindow", windowId: parseInt(win.windowId, 10) });
+      });
+    }
   }
   return li;
 }

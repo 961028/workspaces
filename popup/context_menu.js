@@ -2,26 +2,42 @@ let contextMenuEl; // Global context menu element
 let contextMenuOpenForWorkspaceId = null; // Track which workspace the context menu is open for
 
 /**
+ * Creates a context menu item element with the given label, class, and click handler.
+ * @param {string} label - The text label for the menu item.
+ * @param {string} className - The CSS class for the menu item.
+ * @param {Function} onClick - The click event handler.
+ * @returns {HTMLElement} The created menu item element.
+ */
+function createContextMenuItem(label, className, onClick) {
+  const item = document.createElement("div");
+  item.textContent = label;
+  item.className = className;
+  item.addEventListener("click", onClick);
+  return item;
+}
+
+/**
  * Creates and appends the custom context menu to the document body.
+ * Uses modular item creation for single responsibility and easier reuse.
  */
 function createContextMenu() {
-  contextMenuEl = document.createElement("div");
-  contextMenuEl.id = "context-menu";
+  try {
+    contextMenuEl = document.createElement("div");
+    contextMenuEl.id = "context-menu";
 
-  // Create menu items using dedicated functions for single responsibilities.
-  const renameItem = document.createElement("div");
-  renameItem.textContent = "Rename";
-  renameItem.className = "context-menu-item";
-  renameItem.addEventListener("click", onRenameClick);
+    // Use modular item creation
+    const renameItem = createContextMenuItem("Rename", "context-menu-item", onRenameClick);
+    const unsaveItem = createContextMenuItem("Unsave", "context-menu-item", onUnsaveClick);
 
-  const unsaveItem = document.createElement("div");
-  unsaveItem.textContent = "Unsave";
-  unsaveItem.className = "context-menu-item";
-  unsaveItem.addEventListener("click", onUnsaveClick);
-
-  contextMenuEl.appendChild(renameItem);
-  contextMenuEl.appendChild(unsaveItem);
-  document.body.appendChild(contextMenuEl);
+    contextMenuEl.appendChild(renameItem);
+    contextMenuEl.appendChild(unsaveItem);
+    document.body.appendChild(contextMenuEl);
+  } catch (error) {
+    console.error("Error creating context menu:", error);
+    if (typeof showStatus === 'function') {
+      showStatus("Failed to create context menu.", true);
+    }
+  }
 }
 
 /**
@@ -32,43 +48,49 @@ function createContextMenu() {
 function showContextMenu(e, workspaceId) {
   if (!contextMenuEl) {
     console.error("Context menu not initialized.");
+    if (typeof showStatus === 'function') {
+      showStatus("Context menu not initialized.", true);
+    }
     return;
   }
+  try {
+    // Temporarily make the context menu visible to calculate its dimensions
+    contextMenuEl.style.visibility = "hidden";
+    contextMenuEl.style.display = "block";
 
-  // Temporarily make the context menu visible to calculate its dimensions
-  contextMenuEl.style.visibility = "hidden";
-  contextMenuEl.style.display = "block";
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const menuWidth = contextMenuEl.offsetWidth;
+    const menuHeight = contextMenuEl.offsetHeight;
 
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  const menuWidth = contextMenuEl.offsetWidth;
-  const menuHeight = contextMenuEl.offsetHeight;
+    let left = e.clientX;
+    let top = e.clientY;
 
-  let left = e.clientX;
-  let top = e.clientY;
+    // Ensure the menu is within 20px of the viewport bounds
+    if (left + menuWidth > viewportWidth - 20) {
+      left = viewportWidth - menuWidth - 20;
+    }
+    if (top + menuHeight > viewportHeight - 20) {
+      top = viewportHeight - menuHeight - 20;
+    }
+    if (left < 20) {
+      left = 20;
+    }
+    if (top < 20) {
+      top = 20;
+    }
 
-  // Ensure the menu is within 20px of the viewport bounds
-  if (left + menuWidth > viewportWidth - 20) {
-    left = viewportWidth - menuWidth - 20;
+    contextMenuEl.style.left = `${left}px`;
+    contextMenuEl.style.top = `${top}px`;
+    contextMenuEl.style.visibility = "visible";
+    contextMenuEl.style.display = "block";
+    contextMenuOpenForWorkspaceId = workspaceId;
+  } catch (error) {
+    console.error("Error showing context menu:", error);
+    if (typeof showStatus === 'function') {
+      showStatus("Failed to show context menu.", true);
+    }
   }
-  if (top + menuHeight > viewportHeight - 20) {
-    top = viewportHeight - menuHeight - 20;
-  }
-  if (left < 20) {
-    left = 20;
-  }
-  if (top < 20) {
-    top = 20;
-  }
-
-  // Apply the calculated position and make the menu visible
-  contextMenuEl.style.left = `${left}px`;
-  contextMenuEl.style.top = `${top}px`;
-  contextMenuEl.style.visibility = "visible";
-  contextMenuEl.style.display = "block";
-
-  contextMenuEl.dataset.wsid = workspaceId;
-  contextMenuOpenForWorkspaceId = workspaceId;
 }
 
 /**
