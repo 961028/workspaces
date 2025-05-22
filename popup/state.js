@@ -1,5 +1,3 @@
-// state.js
-// ===== STATE LOADING =====
 /**
  * Loads the state by retrieving the current window and fetching workspace data.
  * @returns {Promise<void>}
@@ -26,7 +24,6 @@ async function loadState() {
   }
 }
 
-// ===== MESSAGE SENDER =====
 /**
  * Sends a message to the background script and processes the response.
  * @param {Object} message - The message payload.

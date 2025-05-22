@@ -1,5 +1,3 @@
-// init.js
-// ===== EVENT LISTENER FOR INITIALIZATION =====
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     await initPopup();
@@ -9,7 +7,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// ===== INITIALIZATION =====
 /**
  * Initializes the popup by setting up context menus, drag-and-drop listeners, loading state, and theme.
  * @returns {Promise<void>}

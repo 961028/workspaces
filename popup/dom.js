@@ -1,5 +1,3 @@
-// dom.js
-// ===== HELPER FUNCTIONS =====
 /**
  * Retrieves a DOM element by its ID and logs a warning if it is not found.
  * @param {string} id - The ID of the element.

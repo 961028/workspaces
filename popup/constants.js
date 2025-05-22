@@ -1,5 +1,3 @@
-// constants.jsa
-// ===== CONSTANTS =====
 /**
  * Global constant defining status message display time in milliseconds.
  * @constant {number}
