@@ -215,25 +215,66 @@ function createSavedListItem(workspace, currentWindowId) {
     if (img) img.src = workspace.favicon;
   }
 
-  // Only open workspace on click if not currently dragging
+  // --- Improved pointer/click/drag/context menu logic ---
   let pointerDragging = false;
-  li.addEventListener("pointerdown", (e) => { 
-    // If pointerdown is on the edit button, do not reset pointerDragging
-    if (e.target.closest(".edit-btn")) return;
-    pointerDragging = false; 
+  let pointerStartX = 0, pointerStartY = 0;
+  const DRAG_THRESHOLD = 5;
+
+  // Helper: is context menu open for this workspace?
+  function isContextMenuOpenForThis() {
+    return (
+      contextMenuEl &&
+      contextMenuEl.style.display === "block" &&
+      contextMenuOpenForWorkspaceId == workspace.id
+    );
+  }
+
+  // Helper: is context menu open for another workspace?
+  function isContextMenuOpenForOther() {
+    return (
+      contextMenuEl &&
+      contextMenuEl.style.display === "block" &&
+      contextMenuOpenForWorkspaceId != workspace.id
+    );
+  }
+
+  li.addEventListener("pointerdown", (e) => {
+    // Ignore if pointerdown is on the edit button, context menu, or initiated with the right mouse button
+    if (e.target.closest(".edit-btn") || e.target.closest("#context-menu") || e.button === 2) return;
+    pointerDragging = false;
+    pointerStartX = e.clientX;
+    pointerStartY = e.clientY;
   });
-  li.addEventListener("pointermove", (e) => { 
-    // If pointermove is on the edit button, do not set pointerDragging
-    if (e.target.closest(".edit-btn")) return;
-    pointerDragging = true; 
+
+  li.addEventListener("pointermove", (e) => {
+    // Ignore if pointermove is on the edit button, context menu, or initiated with the right mouse button
+    if (e.target.closest(".edit-btn") || e.target.closest("#context-menu") || e.button === 2) return;
+    const dx = Math.abs(e.clientX - pointerStartX);
+    const dy = Math.abs(e.clientY - pointerStartY);
+    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+      pointerDragging = true;
+    }
   });
+
   li.addEventListener("pointerup", (e) => {
-    // If pointerup is on the edit button, do not open workspace
-    if (e.target.closest(".edit-btn")) return;
-    // Prevent opening workspace if context menu is open
-    if (contextMenuEl && contextMenuEl.style.display === "block") {
+    // Ignore if pointerup is on the edit button or context menu
+    if (e.target.closest(".edit-btn") || e.target.closest("#context-menu")) return;
+
+    // If context menu is open for another workspace, close it and do nothing else
+    if (isContextMenuOpenForOther()) {
+      hideContextMenu();
+      pointerDragging = false;
       return;
     }
+
+    // If context menu is open for this workspace, close it and do nothing else
+    if (isContextMenuOpenForThis()) {
+      hideContextMenu();
+      pointerDragging = false;
+      return;
+    }
+
+    // If not dragging, open workspace
     if (!pointerDragging) {
       sendMessage({ action: "openWorkspace", workspaceId: parseInt(workspace.id, 10) });
     }
@@ -242,19 +283,67 @@ function createSavedListItem(workspace, currentWindowId) {
 
   li.addEventListener("contextmenu", (e) => {
     e.preventDefault();
+    // If context menu is already open for this workspace, close it
+    if (isContextMenuOpenForThis()) {
+      hideContextMenu();
+      return;
+    }
+    // If context menu is open for another workspace, close it and open for this
+    if (isContextMenuOpenForOther()) {
+      hideContextMenu();
+    }
     showContextMenu(e, workspace.id);
   });
 
   const editBtn = li.querySelector(".edit-btn");
   if (editBtn) {
+    // Left click on edit button: open context menu for this workspace
     editBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       e.preventDefault();
+      // If context menu is already open for this workspace, close it
+      if (isContextMenuOpenForThis()) {
+        hideContextMenu();
+        return;
+      }
+      // If context menu is open for another workspace, close it first
+      if (isContextMenuOpenForOther()) {
+        hideContextMenu();
+      }
       const rect = editBtn.getBoundingClientRect();
       showContextMenu(
         { clientX: rect.left, clientY: rect.bottom, preventDefault: () => {} },
         parseInt(workspace.id, 10)
       );
+    });
+
+    // Right click on edit button: open context menu for this workspace
+    editBtn.addEventListener("contextmenu", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (isContextMenuOpenForThis()) {
+        hideContextMenu();
+        return;
+      }
+      if (isContextMenuOpenForOther()) {
+        hideContextMenu();
+      }
+      const rect = editBtn.getBoundingClientRect();
+      showContextMenu(
+        { clientX: rect.left, clientY: rect.bottom, preventDefault: () => {} },
+        parseInt(workspace.id, 10)
+      );
+    });
+
+    // Prevent drag on edit button from triggering drag logic
+    editBtn.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+    });
+    editBtn.addEventListener("pointermove", (e) => {
+      e.stopPropagation();
+    });
+    editBtn.addEventListener("pointerup", (e) => {
+      e.stopPropagation();
     });
   }
 
@@ -367,7 +456,7 @@ function createContextMenu() {
 }
 
 /**
- * Displays the context menu at the mouse event position.
+ * Displays the context menu at the mouse event position, ensuring it stays within bounds.
  * @param {MouseEvent} e - The right-click event.
  * @param {number} workspaceId - The workspace ID for the menu.
  */
@@ -376,9 +465,39 @@ function showContextMenu(e, workspaceId) {
     console.error("Context menu not initialized.");
     return;
   }
-  contextMenuEl.style.left = `${e.clientX}px`;
-  contextMenuEl.style.top = `${e.clientY}px`;
+
+  // Temporarily make the context menu visible to calculate its dimensions
+  contextMenuEl.style.visibility = "hidden";
   contextMenuEl.style.display = "block";
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const menuWidth = contextMenuEl.offsetWidth;
+  const menuHeight = contextMenuEl.offsetHeight;
+
+  let left = e.clientX;
+  let top = e.clientY;
+
+  // Ensure the menu is within 20px of the viewport bounds
+  if (left + menuWidth > viewportWidth - 20) {
+    left = viewportWidth - menuWidth - 20;
+  }
+  if (top + menuHeight > viewportHeight - 20) {
+    top = viewportHeight - menuHeight - 20;
+  }
+  if (left < 20) {
+    left = 20;
+  }
+  if (top < 20) {
+    top = 20;
+  }
+
+  // Apply the calculated position and make the menu visible
+  contextMenuEl.style.left = `${left}px`;
+  contextMenuEl.style.top = `${top}px`;
+  contextMenuEl.style.visibility = "visible";
+  contextMenuEl.style.display = "block";
+
   contextMenuEl.dataset.wsid = workspaceId;
   contextMenuOpenForWorkspaceId = workspaceId;
 }
@@ -628,6 +747,8 @@ function setupPointerDnD() {
  * @param {PointerEvent} e - The pointer event.
  */
 function pointerDownHandler(e) {
+  // Only allow primary (left) mouse button for drag
+  if (e.button !== 0) return;
   // Use closest to select the list item even if a child is clicked
   draggableItem = e.target.closest('.js-item');
   if (!draggableItem) return;

@@ -32,8 +32,8 @@
    Typography & Sizing
    ========================= */
 :root {
-  --font-size-small: 8px;
-  --font-size-medium: 14px;
+  --font-size-small: 0.867rem;
+  --font-size-medium: 0.867rem;
 
   --border-radius-small: 4px;
   --border-radius-medium: 8px;
@@ -187,13 +187,14 @@ button:hover {
   border-radius: var(--border-radius-medium);
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
   display: none;
-  padding: var(--space-8);
+  padding: var(--space-4);
   position: absolute;
   z-index: 1000;
 }
 
 #context-menu .context-menu-item {
   color: var(--popup-900);
+  border-radius: var(--border-radius-small);
   cursor: pointer;
   font-size: var(--font-size-small);
   padding: var(--space-8);
