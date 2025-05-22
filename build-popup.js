@@ -20,8 +20,8 @@ const orderedFiles = [
   'context_menu.js',
   'status.js',
   'theme.js',
-  'dnd.js',
-  'pointer_dnd.js',
+  'drag.js',
+  'drag_pointer.js',
   'popup_ui_helpers.js',
 ];
 

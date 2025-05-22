@@ -694,7 +694,7 @@ browser.theme.onUpdated.addListener(async ({ theme, windowId }) => {
 setInitialStyle();
 
 
-// ===== dnd.js =====
+// ===== drag.js =====
 /**
  * Handles drag start for unsaved window items.
  * Sets the dataTransfer payload and effect for the drag event.
@@ -740,7 +740,7 @@ function persistSavedOrder() {
 }
 
 
-// ===== pointer_dnd.js =====
+// ===== drag_pointer.js =====
 /**
  * This section implements a pointer-based drag-and-drop reordering widget for list items.
  * It is modular and does not interfere with the existing drag-and-drop logic above.
