@@ -10,24 +10,23 @@
  * @param {string} [fallback] - Optional fallback favicon URL.
  */
 function setFavicon(li, windowId, fallback) {
+  const defaultFallback = browser.runtime.getURL('icons/globe-16.svg');
+  const iconToUse = fallback || defaultFallback;
   if (windowId) {
     browser.tabs.query({ windowId, active: true }).then((tabs) => {
+      const img = li.querySelector('.favicon');
       if (tabs && tabs[0] && tabs[0].favIconUrl) {
-        const img = li.querySelector('.favicon');
         if (img) img.src = tabs[0].favIconUrl;
-      } else if (fallback) {
-        const img = li.querySelector('.favicon');
-        if (img) img.src = fallback;
+      } else if (img) {
+        img.src = iconToUse;
       }
     }).catch(() => {
-      if (fallback) {
-        const img = li.querySelector('.favicon');
-        if (img) img.src = fallback;
-      }
+      const img = li.querySelector('.favicon');
+      if (img) img.src = iconToUse;
     });
-  } else if (fallback) {
+  } else {
     const img = li.querySelector('.favicon');
-    if (img) img.src = fallback;
+    if (img) img.src = iconToUse;
   }
 }
 
