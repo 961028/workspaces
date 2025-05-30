@@ -85,6 +85,7 @@ function showContextMenu(e, workspaceId) {
     contextMenuEl.style.visibility = "visible";
     contextMenuEl.style.display = "block";
     contextMenuOpenForWorkspaceId = workspaceId;
+    contextMenuEl.dataset.wsid = workspaceId;
   } catch (error) {
     console.error("Error showing context menu:", error);
     if (typeof showStatus === 'function') {
