@@ -10,19 +10,19 @@ const outputFile = path.join(popupDir, 'popup.js');
 
 // List files in the correct order for popup.js
 const orderedFiles = [
-  'constants.js',
-  'dom.js',
-  'import_export.js',
-  'init.js',
-  'state.js',
-  'saved_ui.js',
-  'unsaved_ui.js',
-  'context_menu.js',
-  'status.js',
-  'theme.js',
-  'drag.js',
-  'drag_pointer.js',
-  'popup_ui_helpers.js',
+  'popup-constants.js',
+  'popup-dom-utils.js',
+  'popup-import-export.js',
+  'popup-init.js',
+  'popup-state.js',
+  'popup-saved-ui.js',
+  'popup-unsaved-ui.js',
+  'popup-context-menu.js',
+  'popup-status.js',
+  'popup-theme.js',
+  'popup-drag.js',
+  'popup-drag-pointer.js',
+  'popup-ui-helpers.js',
 ];
 
 // Get all .js files in popup/, except popup.js itself
