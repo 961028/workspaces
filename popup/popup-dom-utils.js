@@ -3,7 +3,7 @@
  * @param {string} id - The ID of the element.
  * @returns {HTMLElement|null} The DOM element or null if not found.
  */
-function getDomElement(id) {
+export function getDomElement(id) {
   const element = document.getElementById(id);
   if (!element) {
     console.warn(`Element with id "${id}" not found.`);
@@ -18,7 +18,7 @@ function getDomElement(id) {
  * @param {HTMLElement} targetItem - The target item at drop.
  * @param {number} clientY - The Y-coordinate of the drop event.
  */
-function reorderItem(list, draggedItem, targetItem, clientY) {
+export function reorderItem(list, draggedItem, targetItem, clientY) {
   const bounding = targetItem.getBoundingClientRect();
   const offset = clientY - bounding.top;
   if (offset < bounding.height / 2) {

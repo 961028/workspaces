@@ -1,9 +1,13 @@
+// Import/export logic and UI setup for popup extension
+import { EXPORT_FILENAME } from './popup-constants.js';
+import { getDomElement } from './popup-dom-utils.js';
+
 /**
  * Processes the raw text data from an import file.
  * @param {string} dataString - The raw JSON string from a file.
  * @returns {Promise<void>}
  */
-async function processImportData(dataString) {
+export async function processImportData(dataString) {
   try {
     const importedData = JSON.parse(dataString);
     const response = await browser.runtime.sendMessage({
@@ -26,7 +30,7 @@ async function processImportData(dataString) {
  * Exports the saved workspaces by triggering a download of JSON data.
  * @returns {Promise<void>}
  */
-async function exportWorkspaces() {
+export async function exportWorkspaces() {
   try {
     const response = await browser.runtime.sendMessage({ action: "exportWorkspaces" });
     if (response && response.success) {
@@ -35,7 +39,7 @@ async function exportWorkspaces() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = EXPORT_FILENAME; // Use constant for filename
+      a.download = EXPORT_FILENAME;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -54,7 +58,7 @@ async function exportWorkspaces() {
  * Handles the file input change event for importing workspace data.
  * @param {Event} e - The file input change event.
  */
-function handleImportFile(e) {
+export function handleImportFile(e) {
   const file = e.target.files[0];
   if (!file) {
     console.warn("No file selected for import.");
@@ -70,13 +74,12 @@ function handleImportFile(e) {
 /**
  * Sets up the export and import buttons in the UI.
  */
-function setupExportImportButtons() {
+export function setupExportImportButtons() {
   const container = getDomElement("export-import-controls");
   if (!container) {
     console.warn("Export/Import container not found.");
     return;
   }
-
   // Create hidden file input for importing workspaces.
   const fileInput = document.createElement("input");
   fileInput.type = "file";
@@ -84,14 +87,12 @@ function setupExportImportButtons() {
   fileInput.style.display = "none";
   fileInput.addEventListener("change", handleImportFile);
   container.appendChild(fileInput);
-
   // Create Export Button.
   const exportBtn = document.createElement("button");
   exportBtn.id = "export-btn";
   exportBtn.textContent = "Export Workspaces";
   exportBtn.addEventListener("click", exportWorkspaces);
   container.appendChild(exportBtn);
-
   // Create Import Button.
   const importBtn = document.createElement("button");
   importBtn.id = "import-btn";
