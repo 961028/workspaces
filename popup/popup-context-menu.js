@@ -128,3 +128,7 @@ function onUnsaveClick() {
   sendMessage({ action: "unsaveWorkspace", workspaceId: wsid });
 }
 
+// disable the default context menu everywhere
+document.addEventListener('contextmenu', e => {
+  e.preventDefault();
+});

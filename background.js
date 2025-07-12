@@ -173,11 +173,13 @@ async function handleSaveWindow(windowId, sendResponse) {
     }
     const { workspaces, nextId } = await getWorkspaces();
     const activeTab = tabs.find((tab) => tab.active) || tabs[0];
+    const groupMap = await snapshotGroups(windowId); // snapshot tab groups
     const newWorkspace = {
       id: nextId,
       windowId,
       tabs: tabs.map((tab) => tab.url),
       title: activeTab && activeTab.title ? activeTab.title : "",
+      groupMap, // persist group info
     };
     workspaces[nextId] = newWorkspace;
     await setWorkspaces(workspaces, nextId + 1);
@@ -220,6 +222,17 @@ async function handleOpenWorkspace(workspaceId, sendResponse) {
     const newWindow = await browser.windows.create({ url: sanitizedUrls });
     workspace.windowId = newWindow.id;
     workspaces[workspaceId] = workspace;
+
+    // Wait for all tabs to be created and loaded before restoring groups
+    if (workspace.groupMap) {
+      console.info("[restore] groupMap found, waiting for tabs...", workspace.groupMap);
+      const tabs = await waitForTabs(newWindow.id, sanitizedUrls.length, sanitizedUrls);
+      console.info(`[restore] Tabs after window create: count=${tabs.length}`, tabs.map(t => t.url));
+      await restoreGroups(newWindow.id, workspace.groupMap);
+    } else {
+      console.info("[restore] No groupMap found for workspace", workspaceId);
+    }
+
     await setWorkspaces(workspaces, nextId);
     console.info(`Opened workspace ${workspaceId} in new window ${newWindow.id}`);
     sendResponse({ success: true, message: "New window opened.", windowId: newWindow.id });
@@ -278,7 +291,7 @@ async function handleRenameWorkspace(workspaceId, newTitle, sendResponse) {
         const fullTitle = `${newTitle} - `;
 
         await browser.windows.update(workspaces[workspaceId].windowId, { titlePreface: fullTitle });
-        console.info(`Updated window title for workspace ${workspaceId} to "${fullTitle}"`);
+        console.info(`Updated window title for workspace ${workspaceId}    to "${fullTitle}"`);
       } catch (error) {
         console.warn(`Failed to update window title for workspace ${workspaceId}:`, error);
       }
@@ -382,6 +395,82 @@ async function handleImportWorkspace(msg, sendResponse) {
     console.error("Error importing workspaces:", error);
     sendResponse({ success: false, error: error.message });
   }
+}
+
+/**
+ * Snapshots all tab groups in a window, returning a map of stable GUIDs to group metadata and member URLs.
+ * @param {number} windowId - The window ID to snapshot groups from.
+ * @returns {Promise<Object>} Map of GUID -> { title, color, collapsed, urls }
+ */
+async function snapshotGroups(windowId) {
+  let map = {};
+  let groups = await browser.tabGroups.query({ windowId });
+  for (let grp of groups) {
+    // generate a stable ID for this logical group
+    let guid = crypto.randomUUID();
+    // collect all tab URLs in this group
+    let tabs = await browser.tabs.query({ windowId, groupId: grp.id });
+    let urls = tabs.map(t => t.url);
+    map[guid] = {
+      title:     grp.title,
+      color:     grp.color,
+      collapsed: grp.collapsed,
+      urls
+    };
+  }
+  return map;
+}
+
+/**
+ * Restores tab groups in a window from a saved group map.
+ * @param {number} windowId - The window ID to restore groups in.
+ * @param {Object} groupMap - Map of GUID -> { title, color, collapsed, urls }
+ * @returns {Promise<void>}
+ */
+async function restoreGroups(windowId, groupMap) {
+  // all tabs in the new window, in the same order you just opened them
+  let tabs = await browser.tabs.query({ windowId });
+  console.info(`[restoreGroups] Starting restore for window ${windowId} with ${tabs.length} tabs`);
+  // for each logical group, find member tabs by URL, then group them
+  for (let [guid, { title, color, collapsed, urls }] of Object.entries(groupMap)) {
+    // pick the tabs whose URL is in this group’s url-list
+    let members = tabs.filter(t => urls.includes(t.url));
+    console.info(`[restoreGroups] Group ${guid}: title='${title}', color='${color}', collapsed=${collapsed}, urls=`, urls);
+    console.info(`[restoreGroups] Found ${members.length} matching tabs for group ${guid}:`, members.map(t => t.url));
+    if (members.length > 1) {
+      let newGroupId = await browser.tabs.group({
+        tabIds: members.map(t => t.id)
+      });
+      await browser.tabGroups.update(newGroupId, { title, color, collapsed });
+      console.info(`[restoreGroups] Created group ${newGroupId} for GUID ${guid}`);
+    } else {
+      console.info(`[restoreGroups] Skipped group ${guid} (not enough tabs)`);
+    }
+  }
+}
+
+/**
+ * Waits until the expected number of tabs with the expected URLs are present in the window, or times out.
+ * @param {number} windowId - The window ID to check.
+ * @param {number} expectedCount - The number of tabs to wait for.
+ * @param {Array<string>} expectedUrls - The URLs to wait for.
+ * @param {number} [timeout=8000] - Maximum time to wait in ms.
+ * @returns {Promise<Array>} The array of tabs found.
+ */
+async function waitForTabs(windowId, expectedCount, expectedUrls, timeout = 8000) {
+  const interval = 100;
+  let waited = 0;
+  while (waited < timeout) {
+    let tabs = await browser.tabs.query({ windowId });
+    const urls = tabs.map(t => t.url);
+    const allReady = tabs.length >= expectedCount && expectedUrls.every(url => urls.includes(url));
+    console.info(`[waitForTabs] Waiting: have ${tabs.length}, want ${expectedCount}, loaded URLs:`, urls);
+    if (allReady) return tabs;
+    await new Promise(res => setTimeout(res, interval));
+    waited += interval;
+  }
+  console.warn(`[waitForTabs] Timeout after ${timeout}ms, only found URLs:`, (await browser.tabs.query({ windowId })).map(t => t.url));
+  return await browser.tabs.query({ windowId });
 }
 
 /* ===== MESSAGE ROUTER ===== */

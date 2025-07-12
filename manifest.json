@@ -3,7 +3,7 @@
   "name": "Workspace Manager",
   "version": "1.0",
   "description": "Automatically save and restore browser windows as workspaces.",
-  "permissions": ["tabs", "storage", "windows", "menus", "contextMenus"],
+  "permissions": ["tabs", "storage", "windows", "menus", "contextMenus", "tabGroups"],
   "browser_action": {
     "default_popup": "popup/popup.html",
     "default_icon": "icons/icon.png"
