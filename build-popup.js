@@ -12,7 +12,6 @@ const outputFile = path.join(popupDir, 'popup.js');
 const orderedFiles = [
   'popup-constants.js',
   'popup-dom-utils.js',
-  'popup-import-export.js',
   'popup-init.js',
   'popup-state.js',
   'popup-saved-ui.js',
