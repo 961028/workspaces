@@ -20,7 +20,7 @@ function updateUnsavedList(unsaved, currentWindowId) {
 
   list.innerHTML = "";
   if (!Array.isArray(unsaved) || unsaved.length === 0) {
-    list.innerHTML = "<li>(No unsaved windows)</li>";
+    list.innerHTML = "<li>No unsaved windows</li>";
     return;
   }
   unsaved.forEach((win) => {

@@ -1,5 +1,3 @@
-// options/options.js
-
 // Constants
 const EXPORT_FILENAME = "workspaces-export.json";
 

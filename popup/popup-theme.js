@@ -2,7 +2,7 @@
  * Retrieves and applies the current theme to the popup.
  * @returns {Promise<void>}
  */
-export async function setInitialStyle() {
+async function setInitialStyle() {
   try {
     const theme = await browser.theme.getCurrent();
     applyThemeStyle(theme);
@@ -16,7 +16,7 @@ export async function setInitialStyle() {
  * Applies CSS custom properties based on the theme colors.
  * @param {Object} theme - The theme object with color properties.
  */
-export function applyThemeStyle(theme) {
+function applyThemeStyle(theme) {
   if (!theme || !theme.colors) {
     console.warn("Invalid theme or missing color information.");
     return;

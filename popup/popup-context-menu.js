@@ -1,7 +1,3 @@
-// Context menu logic for popup extension
-import { sendMessage } from './popup-state.js';
-import { showStatus } from './popup-status.js';
-
 let contextMenuEl; // Global context menu element
 let contextMenuOpenForWorkspaceId = null; // Track which workspace the context menu is open for
 
@@ -23,7 +19,7 @@ function createContextMenuItem(label, className, onClick) {
 /**
  * Creates and appends the custom context menu to the document body.
  */
-export function createContextMenu() {
+function createContextMenu() {
   try {
     contextMenuEl = document.createElement("div");
     contextMenuEl.id = "context-menu";
@@ -48,7 +44,7 @@ export function createContextMenu() {
  * @param {MouseEvent} e - The right-click event.
  * @param {number} workspaceId - The workspace ID for the menu.
  */
-export function showContextMenu(e, workspaceId) {
+function showContextMenu(e, workspaceId) {
   if (!contextMenuEl) {
     console.error("Context menu not initialized.");
     if (typeof showStatus === 'function') {
@@ -100,7 +96,7 @@ export function showContextMenu(e, workspaceId) {
 /**
  * Hides the custom context menu.
  */
-export function hideContextMenu() {
+function hideContextMenu() {
   if (contextMenuEl) {
     contextMenuEl.style.display = "none";
     contextMenuOpenForWorkspaceId = null;
@@ -131,3 +127,4 @@ function onUnsaveClick() {
   const wsid = parseInt(contextMenuEl?.dataset.wsid, 10);
   sendMessage({ action: "unsaveWorkspace", workspaceId: wsid });
 }
+

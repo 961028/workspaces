@@ -1,13 +1,8 @@
-// State management for popup extension
-import { showStatus } from './popup-status.js';
-import { updateSavedList } from './popup-saved-ui.js';
-import { updateUnsavedList } from './popup-unsaved-ui.js';
-
 /**
  * Loads the state by retrieving the current window and fetching workspace data.
  * @returns {Promise<void>}
  */
-export async function loadState() {
+async function loadState() {
   try {
     const currentWindow = await browser.windows.getLastFocused();
     if (!currentWindow || !currentWindow.id) {
@@ -34,7 +29,7 @@ export async function loadState() {
  * @param {Object} message - The message payload.
  * @returns {Promise<void>}
  */
-export async function sendMessage(message) {
+async function sendMessage(message) {
   if (!message || typeof message !== "object") {
     console.error("Invalid message object:", message);
     showStatus("Invalid message data.", true);

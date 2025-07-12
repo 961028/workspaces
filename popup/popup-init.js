@@ -1,11 +1,8 @@
-// Initialization logic for popup extension
-import { setupExportImportButtons } from './popup-import-export.js';
-
 /**
  * Initializes the popup by setting up context menus, drag-and-drop listeners, loading state, and theme.
  * @returns {Promise<void>}
  */
-export async function initPopup() {
+async function initPopup() {
   try {
     createContextMenu();
     await loadState();
