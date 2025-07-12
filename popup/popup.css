@@ -35,8 +35,8 @@
   --font-size-small: 0.867rem;
   --font-size-medium: 0.867rem;
 
-  --border-radius-small: 4px;
-  --border-radius-medium: 8px;
+  --border-radius-small: 2px;
+  --border-radius-medium: 4px;
 }
 
 /* =========================
@@ -98,7 +98,6 @@ li:hover {
   background-color: var(--popup-200);
   border: 1px solid transparent;
   box-sizing: border-box;
-  box-shadow: var(--shadow);
 }
 
 li.highlight {
