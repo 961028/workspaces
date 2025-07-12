@@ -5,20 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
   <title>Workspace Manager Options</title>
-  <link rel="stylesheet" href="../popup/popup.css">
+  <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <h2>Workspace Import / Export</h2>
+  <h2>Backup & Restore Backup</h2>
 
   <div id="export-import-controls">
-    <button id="export-btn">Export Workspaces</button>
+    <button id="export-btn">Backup Workspaces</button>
     <button id="import-btn">Import Workspaces</button>
     <input type="file" id="import-file" accept="application/json" style="display:none">
   </div>
 
   <div id="status"></div>
 
-  <!-- Single external script with all logic -->
   <script src="options.js"></script>
 </body>
 </html>

@@ -1,0 +1,34 @@
+body {
+  margin: var(--space-16);
+  background-color: var(--popup-100);
+  color: var(--popup-900);
+  padding: var(--space-8);
+}
+
+h2 {
+  margin-bottom: var(--space-12);
+  font-size: var(--font-size-large);
+}
+
+#export-import-controls {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+/* =========================
+   Button Styles
+   ========================= */
+button {
+  font-size: var(--font-size-medium);
+  color: var(--popup-900);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  padding: var(--space-8) var(--space-12);
+}
+
+button:hover {
+  background-color: var(--popup-300);
+}

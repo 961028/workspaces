@@ -1,0 +1,53 @@
+/* =========================
+   Color Variables
+   ========================= */
+:root {
+  /* Popup Colors */
+  --popup: transparent;
+  --popup_border: transparent;
+  --popup_highlight: transparent;
+  --popup_highlight_text: transparent;
+  --popup_text: transparent;
+
+  /* Toolbar & Misc */
+  --toolbar: transparent;
+  --test: transparent;
+
+  /* Derived Popup Colors */
+  --popup-000: var(--popup);
+  --popup-100: color-mix(in display-p3, var(--popup), white 8%);
+  --popup-200: color-mix(in display-p3, var(--popup), white 16.86%);
+  --popup-300: color-mix(in display-p3, var(--popup), white 30%);
+  --popup-400: color-mix(in display-p3, var(--popup), white 40%);
+  --popup-500: color-mix(in display-p3, var(--popup), white 50%);
+  --popup-600: color-mix(in display-p3, var(--popup), white 60%);
+  --popup-700: color-mix(in display-p3, var(--popup), white 70%);
+  --popup-800: color-mix(in display-p3, var(--popup), white 80%);
+  --popup-900: color-mix(in display-p3, var(--popup), white 90%);
+
+  --shadow: 0px 2px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* =========================
+   Typography & Sizing
+   ========================= */
+:root {
+  --font-size-small: 0.867rem;
+  --font-size-medium: 1rem;
+  --font-size-large: 1.4rem;
+
+  --border-radius-small: 2px;
+  --border-radius-medium: 4px;
+}
+
+/* =========================
+   Spacing Variables
+   ========================= */
+:root {
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+}
