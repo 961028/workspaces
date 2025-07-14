@@ -433,7 +433,7 @@ async function restoreGroups(windowId, groupMap) {
   console.info(`[restoreGroups] Starting restore for window ${windowId} with ${tabs.length} tabs`);
   // for each logical group, find member tabs by URL, then group them
   for (let [guid, { title, color, collapsed, urls }] of Object.entries(groupMap)) {
-    // pick the tabs whose URL is in this group’s url-list
+    // pick the tabs whose URL is in this groups url-list
     let members = tabs.filter(t => urls.includes(t.url));
     console.info(`[restoreGroups] Group ${guid}: title='${title}', color='${color}', collapsed=${collapsed}, urls=`, urls);
     console.info(`[restoreGroups] Found ${members.length} matching tabs for group ${guid}:`, members.map(t => t.url));
