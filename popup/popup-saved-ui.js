@@ -10,7 +10,7 @@ function updateSavedList(saved, currentWindowId) {
   list.classList.add("js-list"); // Add class for pointer-based drag-and-drop
 
   if (!Array.isArray(saved) || saved.length === 0) {
-    list.innerHTML = "<li>No saved workspaces</li>";
+    list.innerHTML = "You have no saved windows, try saving one!";
     return;
   }
   // Sort workspaces by the order property (defaulting to 0)
@@ -41,7 +41,7 @@ function createSavedListItem(workspace, currentWindowId) {
     li.classList.add("highlight");
   }
   li.innerHTML = `
-    <img src="default-favicon.png" alt="Favicon" class="favicon">
+    <img src="default-favicon.png" alt="?" class="favicon">
     <span class="label">${workspace.title || "(No Title)"}</span>
     <button class="edit-btn" data-wsid="${workspace.id}">Edit</button>
   `;
