@@ -559,10 +559,7 @@ function registerTabListeners() {
  * Registers window-related event listeners for creation, removal, and focus changes.
  */
 function registerWindowListeners() {
-  browser.windows.onCreated.addListener((win) => {
-    console.info("Window created:", win.id);
-  });
-  
+ 
   browser.windows.onRemoved.addListener((windowId) => {
     unsetWindowIdForClosedWorkspaces(windowId);
   });
@@ -570,7 +567,7 @@ function registerWindowListeners() {
   browser.windows.onFocusChanged.addListener((windowId) => {
     if (windowId > 0) {
       windowLastActive[windowId] = Date.now();
-      console.info("Updated last active time for window", windowId);
+      //console.info("Updated last active time for window", windowId);
     }
   });
 }
