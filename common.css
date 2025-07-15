@@ -13,17 +13,57 @@
   --toolbar: transparent;
   --test: transparent;
 
+    /* Additional Colors */
+  --bookmark_text: transparent;
+  --button_background_active: transparent;
+  --button_background_hover: transparent;
+  --frame: transparent;
+  --frame_inactive: transparent;
+  --frame_incognito: transparent;
+  --frame_incognito_inactive: transparent;
+  --icons: transparent;
+  --icons_attention: transparent;
+  --ntp_background: transparent;
+  --ntp_header: transparent;
+  --ntp_link: transparent;
+  --ntp_text: transparent;
+  --tab_background_separator: transparent;
+  --tab_background_text: transparent;
+  --tab_line: transparent;
+  --tab_loading: transparent;
+  --tab_selected: transparent;
+  --tab_text: transparent;
+  --toolbar_bottom_separator: transparent;
+  --toolbar_field: transparent;
+  --toolbar_field_border: transparent;
+  --toolbar_field_border_focus: transparent;
+  --toolbar_field_focus: transparent;
+  --toolbar_field_highlight: transparent;
+  --toolbar_field_highlight_text: transparent;
+  --toolbar_field_separator: transparent;
+  --toolbar_field_text: transparent;
+  --toolbar_field_text_focus: transparent;
+  --toolbar_text: transparent;
+  --toolbar_top_separator: transparent;
+  --toolbar_vertical_separator: transparent;
+
+  /* Colors that are used to derive other colors */
+  --Menu: var(--popup);
+  --MenuText: var(--popup_text);
+
+
   /* Derived Popup Colors */
-  --popup-000: var(--popup);
-  --popup-100: color-mix(in display-p3, var(--popup), white 8%);
-  --popup-200: color-mix(in display-p3, var(--popup), white 16.86%);
-  --popup-300: color-mix(in display-p3, var(--popup), white 30%);
-  --popup-400: color-mix(in display-p3, var(--popup), white 40%);
-  --popup-500: color-mix(in display-p3, var(--popup), white 50%);
-  --popup-600: color-mix(in display-p3, var(--popup), white 60%);
-  --popup-700: color-mix(in display-p3, var(--popup), white 70%);
-  --popup-800: color-mix(in display-p3, var(--popup), white 80%);
-  --popup-900: color-mix(in display-p3, var(--popup), white 90%);
+  --popup-000: var(--Menu);
+  --popup-100: color-mix(in srgb, var(--Menu), var(--MenuText) 8%);
+  --popup-200: color-mix(in srgb, var(--Menu), var(--MenuText) 16.86%);
+  --popup-300: color-mix(in srgb, var(--Menu), var(--MenuText) 20%);
+  --popup-400: color-mix(in srgb, var(--Menu), var(--MenuText) 30.79%);
+  --popup-500: color-mix(in srgb, var(--Menu), var(--MenuText) 50%);
+  --popup-600: color-mix(in srgb, var(--Menu), var(--MenuText) 60%);
+  --popup-700: color-mix(in srgb, var(--Menu), var(--MenuText) 70%);
+  --popup-800: color-mix(in srgb, var(--Menu), var(--MenuText) 80%);
+  --popup-900: color-mix(in srgb, var(--Menu), var(--MenuText) 90%);
+  --popup-1000: var(--MenuText);
 
   --shadow: 0px 2px 3px rgba(0, 0, 0, 0.05);
 }
