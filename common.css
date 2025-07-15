@@ -2,52 +2,7 @@
    Color Variables
    ========================= */
 :root {
-  /* Popup Colors */
-  --popup: transparent;
-  --popup_border: transparent;
-  --popup_highlight: transparent;
-  --popup_highlight_text: transparent;
-  --popup_text: transparent;
-
-  /* Toolbar & Misc */
-  --toolbar: transparent;
-  --test: transparent;
-
-    /* Additional Colors */
-  --bookmark_text: transparent;
-  --button_background_active: transparent;
-  --button_background_hover: transparent;
-  --frame: transparent;
-  --frame_inactive: transparent;
-  --frame_incognito: transparent;
-  --frame_incognito_inactive: transparent;
-  --icons: transparent;
-  --icons_attention: transparent;
-  --ntp_background: transparent;
-  --ntp_header: transparent;
-  --ntp_link: transparent;
-  --ntp_text: transparent;
-  --tab_background_separator: transparent;
-  --tab_background_text: transparent;
-  --tab_line: transparent;
-  --tab_loading: transparent;
-  --tab_selected: transparent;
-  --tab_text: transparent;
-  --toolbar_bottom_separator: transparent;
-  --toolbar_field: transparent;
-  --toolbar_field_border: transparent;
-  --toolbar_field_border_focus: transparent;
-  --toolbar_field_focus: transparent;
-  --toolbar_field_highlight: transparent;
-  --toolbar_field_highlight_text: transparent;
-  --toolbar_field_separator: transparent;
-  --toolbar_field_text: transparent;
-  --toolbar_field_text_focus: transparent;
-  --toolbar_text: transparent;
-  --toolbar_top_separator: transparent;
-  --toolbar_vertical_separator: transparent;
-
-  /* Colors that are used to derive other colors */
+  /* Base Colors */
   --Menu: var(--popup);
   --MenuText: var(--popup_text);
 
