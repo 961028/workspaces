@@ -44,6 +44,31 @@ async function setWorkspaces(workspaces, nextId) {
   }
 }
 
+/**
+ * Unsets the windowId for all workspaces associated with a closed window.
+ * This marks those workspaces as not currently open in any window.
+ * @param {number} closedWindowId - The ID of the window that was closed.
+ * @returns {Promise<void>}
+ */
+async function unsetWindowIdForClosedWorkspaces(closedWindowId) {
+  try {
+    const { workspaces, nextId } = await getWorkspaces();
+    let anyWorkspaceUpdated = false;
+    Object.keys(workspaces).forEach((workspaceId) => {
+      if (workspaces[workspaceId].windowId === closedWindowId) {
+        workspaces[workspaceId].windowId = null;
+        anyWorkspaceUpdated = true;
+      }
+    });
+    if (anyWorkspaceUpdated) {
+      await setWorkspaces(workspaces, nextId);
+      console.info("Unset windowId for workspace(s) associated with closed window", closedWindowId);
+    }
+  } catch (error) {
+    console.error("Error unsetting windowId for closed window", closedWindowId, error);
+  }
+}
+
 /* ===== URL HELPER ===== */
 /**
  * Sanitizes an array of URL strings.
@@ -539,7 +564,7 @@ function registerWindowListeners() {
   });
   
   browser.windows.onRemoved.addListener((windowId) => {
-    markWorkspaceClosed(windowId);
+    unsetWindowIdForClosedWorkspaces(windowId);
   });
   
   browser.windows.onFocusChanged.addListener((windowId) => {
@@ -548,31 +573,6 @@ function registerWindowListeners() {
       console.info("Updated last active time for window", windowId);
     }
   });
-}
-
-/**
- * Marks workspaces as closed when their window is removed.
- * Updates each workspace that belonged to the closed window.
- * @param {number} windowId - The ID of the closed window.
- * @returns {Promise<void>}
- */
-async function markWorkspaceClosed(windowId) {
-  try {
-    const { workspaces, nextId } = await getWorkspaces();
-    let updated = false;
-    Object.keys(workspaces).forEach((wsId) => {
-      if (workspaces[wsId].windowId === windowId) {
-        workspaces[wsId].windowId = null;
-        updated = true;
-      }
-    });
-    if (updated) {
-      await setWorkspaces(workspaces, nextId);
-      console.info("Marked workspace(s) as closed for window", windowId);
-    }
-  } catch (error) {
-    console.error("Error marking workspaces as closed for window", windowId, error);
-  }
 }
 
 // Register all event listeners.
