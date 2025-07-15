@@ -10,7 +10,7 @@ function updateSavedList(saved, currentWindowId) {
   list.classList.add("js-list"); // Add class for pointer-based drag-and-drop
 
   if (!Array.isArray(saved) || saved.length === 0) {
-    list.innerHTML = "You have no saved windows, try saving one!";
+    list.innerHTML = '<div class="empty-message">You don\'t have any saved windows yet.</div>';
     return;
   }
   // Sort workspaces by the order property (defaulting to 0)

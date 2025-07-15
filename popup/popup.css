@@ -119,9 +119,8 @@ button:hover {
    Custom Context Menu
    ========================= */
 #context-menu {
-  background-color: var(--toolbar);
-  border: 1px solid var(--test);
-  border-color: var(--test);
+  background-color: var(--popup-000);
+  border: 1px solid var(--popup-200);
   border-radius: var(--border-radius-medium);
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
   display: none;
@@ -131,7 +130,7 @@ button:hover {
 }
 
 #context-menu .context-menu-item {
-  color: var(--popup-900);
+  color: var(--popup-1000);
   border-radius: var(--border-radius-small);
   cursor: pointer;
   font-size: var(--font-size-small);
@@ -140,4 +139,14 @@ button:hover {
 
 #context-menu .context-menu-item:hover {
   background-color: var(--popup-300);
+}
+
+/* =========================
+   Base Styles
+   ========================= */
+
+.empty-message {
+  padding: var(--space-16);
+  text-align: center;
+  color: var(--popup-700);
 }
