@@ -540,7 +540,7 @@ async function setInitialStyle() {
   try {
     const theme = await browser.theme.getCurrent();
     applyThemeStyle(theme);
-    console.info("Theme applied successfully:", theme);
+    //console.info("Theme applied successfully:", theme);
   } catch (error) {
     console.error("Error retrieving initial theme:", error);
   }
@@ -564,7 +564,7 @@ function applyThemeStyle(theme) {
   docStyle.setProperty("--popup_text", colors.popup_text);
   docStyle.setProperty("--toolbar", colors.toolbar);
   docStyle.setProperty("--test", colors.toolbar_bottom_separator);
-  console.info("Theme updated successfully:", theme);
+  //console.info("Theme updated successfully:", theme);
 }
 
 browser.theme.onUpdated.addListener(async ({ theme, windowId }) => {
@@ -573,7 +573,7 @@ browser.theme.onUpdated.addListener(async ({ theme, windowId }) => {
     if (!windowId || windowId === currentWindow.id) {
       applyThemeStyle(theme);
     } else {
-      console.info("Theme update skipped for windowId:", windowId);
+      //console.info("Theme update skipped for windowId:", windowId);
     }
   } catch (error) {
     console.error("Error handling theme update:", error);
