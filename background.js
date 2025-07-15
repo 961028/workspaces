@@ -134,15 +134,37 @@ async function processPendingUpdates() {
  * @param {number} winId - The window ID to update.
  * @param {Array<Object>} tabs - The array of tab objects.
  */
-function updateWorkspaceForWindow(workspaces, winId, tabs) {
+async function updateWorkspaceForWindow(workspaces, winId, tabs) {
   if (!tabs.length) return; // (Rule 2: Use early return for empty arrays)
 
   // Determine the active tab (or fall back to the last tab if none is active)
   const activeTab = tabs.find((tab) => tab.active) || tabs[tabs.length - 1];
-
+  let groupRanges = [];
+  if (browser.tabGroups) {
+    try {
+      const groups = await browser.tabGroups.query({ windowId: winId });
+      for (const group of groups) {
+        // Find all tabs in this group
+        const groupTabs = tabs.filter((tab) => tab.groupId === group.id);
+        if (groupTabs.length > 0) {
+          const indices = groupTabs.map((tab) => tab.index);
+          groupRanges.push({
+            start: Math.min(...indices),
+            end: Math.max(...indices),
+            title: group.title || '',
+            color: group.color || '',
+            collapsed: group.collapsed || false
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Could not query tabGroups:', e);
+    }
+  }
   Object.keys(workspaces).forEach((wsId) => {
     if (workspaces[wsId].windowId === winId) {
       workspaces[wsId].tabs = tabs.map((tab) => tab.url);
+      workspaces[wsId].groupRanges = groupRanges;
       // Only update title if no custom title has been set.
       if (workspaces[wsId].customTitle === undefined) {
         workspaces[wsId].title = activeTab ? activeTab.title : "";
@@ -196,6 +218,27 @@ async function handleSaveWindow(windowId, sendResponse) {
     if (!tabs || tabs.length === 0) {
       return sendResponse({ success: false, error: "Window has no tabs." });
     }
+    let groupRanges = [];
+    if (browser.tabGroups) {
+      try {
+        const groups = await browser.tabGroups.query({ windowId });
+        for (const group of groups) {
+          const groupTabs = tabs.filter((tab) => tab.groupId === group.id);
+          if (groupTabs.length > 0) {
+            const indices = groupTabs.map((tab) => tab.index);
+            groupRanges.push({
+              start: Math.min(...indices),
+              end: Math.max(...indices),
+              title: group.title || '',
+              color: group.color || '',
+              collapsed: group.collapsed || false
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Could not query tabGroups:', e);
+      }
+    }
     const { workspaces, nextId } = await getWorkspaces();
     const activeTab = tabs.find((tab) => tab.active) || tabs[0];
     const newWorkspace = {
@@ -203,6 +246,7 @@ async function handleSaveWindow(windowId, sendResponse) {
       windowId,
       tabs: tabs.map((tab) => tab.url),
       title: activeTab && activeTab.title ? activeTab.title : "",
+      groupRanges
     };
     workspaces[nextId] = newWorkspace;
     await setWorkspaces(workspaces, nextId + 1);
@@ -245,8 +289,30 @@ async function handleOpenWorkspace(workspaceId, sendResponse) {
     const newWindow = await browser.windows.create({ url: sanitizedUrls });
     workspace.windowId = newWindow.id;
     workspaces[workspaceId] = workspace;
-
-
+    // Wait for all tabs to be ready
+    let tabs;
+    for (let i = 0; i < 10; ++i) {
+      tabs = await browser.tabs.query({ windowId: newWindow.id });
+      if (tabs.length === sanitizedUrls.length) break;
+      await new Promise((res) => setTimeout(res, 200));
+    }
+    // Reapply tab groups
+    if (browser.tabGroups && Array.isArray(workspace.groupRanges)) {
+      for (const group of workspace.groupRanges) {
+        const groupTabs = tabs.filter(
+          (tab) => tab.index >= group.start && tab.index <= group.end
+        );
+        if (groupTabs.length > 1) {
+          const tabIds = groupTabs.map((tab) => tab.id);
+          const groupId = await browser.tabs.group({ tabIds });
+          await browser.tabGroups.update(groupId, {
+            title: group.title,
+            color: group.color,
+            collapsed: group.collapsed
+          });
+        }
+      }
+    }
     await setWorkspaces(workspaces, nextId);
     console.info(`Opened workspace ${workspaceId} in new window ${newWindow.id}`);
     sendResponse({ success: true, message: "New window opened.", windowId: newWindow.id });
@@ -485,6 +551,26 @@ function registerWindowListeners() {
   });
 }
 
+/**
+ * Registers tabGroups event listeners to schedule workspace updates for all relevant tab group changes.
+ */
+function registerTabGroupListeners() {
+  if (!browser.tabGroups) return; // Defensive: not all browsers support tabGroups
+  browser.tabGroups.onCreated.addListener((group) => {
+    if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
+  });
+  browser.tabGroups.onUpdated.addListener((group) => {
+    if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
+  });
+  browser.tabGroups.onMoved.addListener((group) => {
+    if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
+  });
+  browser.tabGroups.onRemoved.addListener((group) => {
+    if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
+  });
+}
+
 // Register all event listeners.
 registerTabListeners();
 registerWindowListeners();
+registerTabGroupListeners();
