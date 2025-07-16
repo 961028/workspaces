@@ -47,8 +47,8 @@ function createUnsavedListItem(win, currentWindowId) {
   }
   // Calculate tab count subtitle
   const tabCount = Array.isArray(win.tabs) ? win.tabs.length : 0;
-  const subtitle = tabCount === 1 ? "1 tab" : `${tabCount} tabs`;
-  li.innerHTML = `<img src="default-favicon.png" alt="Favicon" class="favicon">
+  const subtitle = tabCount === 1 ? "1 Tab" : `${tabCount} Tabs`;
+  li.innerHTML = `<img src="default-favicon.png" alt="?" class="favicon">
                   <div class="title-stack">
                     <span class="label">${win.title || "(Error: No Title)"}</span>
                     <span class="subtitle">${subtitle}</span>

@@ -609,7 +609,7 @@ browser.contextMenus.onShown.addListener(async (info, tab) => {
     }
   }
   const count = tabs.length;
-  const title = count > 1 ? `Move ${count} tabs to another Window` : "Move tab to another Window";
+  const title = count > 1 ? `Move ${count} Tabs to another Window` : "Move Tab to another Window";
   createMainMenu(title);
 
   // Get all other windows and build submenus
@@ -625,7 +625,7 @@ browser.contextMenus.onShown.addListener(async (info, tab) => {
     }
     // Count tabs in this window
     const tabCount = w.tabs ? w.tabs.length : 0;
-    const label = `${winTitle} (${tabCount} tab${tabCount === 1 ? '' : 's'})`;
+    const label = `${winTitle} (${tabCount} Tab${tabCount === 1 ? '' : 's'})`;
     browser.contextMenus.create({
       id: `move-to-${w.id}`,
       parentId: "move-tabs",

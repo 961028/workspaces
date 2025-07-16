@@ -42,7 +42,7 @@ function createSavedListItem(workspace, currentWindowId) {
   }
   // Calculate tab count subtitle
   const tabCount = Array.isArray(workspace.tabs) ? workspace.tabs.length : 0;
-  const subtitle = tabCount === 1 ? "1 tab" : `${tabCount} tabs`;
+  const subtitle = tabCount === 1 ? "1 Tab" : `${tabCount} Tabs`;
   li.innerHTML = `
     <img src="default-favicon.png" alt="?" class="favicon">
     <div class="title-stack">
