@@ -574,3 +574,94 @@ function registerTabGroupListeners() {
 registerTabListeners();
 registerWindowListeners();
 registerTabGroupListeners();
+
+// ===== TAB MOVER CONTEXT MENU FEATURE =====
+
+// Helper to create the main menu item
+function createMainMenu(title = "Move tab to another Window") {
+  try {
+    browser.contextMenus.create({
+      id: "move-tabs",
+      title,
+      contexts: ["tab"]
+    });
+  } catch (e) {
+    // Ignore if already exists
+  }
+}
+
+// 1. Create the main context menu item on install/startup
+browser.runtime.onInstalled.addListener(() => {
+  createMainMenu();
+});
+browser.runtime.onStartup.addListener(() => {
+  createMainMenu();
+});
+
+// Track last submenu window IDs for click handling
+let lastSubmenuWindows = [];
+
+// 2. Dynamically update the menu label and submenus based on selection count and open windows
+browser.contextMenus.onShown.addListener(async (info, tab) => {
+  // Remove all menu items to rebuild cleanly
+  await browser.contextMenus.removeAll().catch(() => {});
+
+  // Determine which tabs are selected
+  let tabs = [];
+  if (tab && tab.windowId) {
+    tabs = await browser.tabs.query({ windowId: tab.windowId, highlighted: true });
+    // If the clicked tab is not highlighted, fallback to just that tab
+    if (!tabs.some(t => t.id === tab.id)) {
+      tabs = [tab];
+    }
+  }
+  const count = tabs.length;
+  const title = count > 1 ? `Move ${count} tabs to another Window` : "Move tab to another Window";
+  createMainMenu(title);
+
+  // Get all other windows and build submenus
+  let windows = await browser.windows.getAll({ populate: true });
+  lastSubmenuWindows = [];
+  for (let w of windows) {
+    if (!tab || w.id === tab.windowId) continue;
+    // Get window title from its active tab
+    let winTitle = "(No Title)";
+    if (w.tabs && w.tabs.length > 0) {
+      const activeTab = w.tabs.find(t => t.active) || w.tabs[0];
+      winTitle = activeTab && activeTab.title ? activeTab.title : "(No Title)";
+    }
+    // Count tabs in this window
+    const tabCount = w.tabs ? w.tabs.length : 0;
+    const label = `${winTitle} (${tabCount} tab${tabCount === 1 ? '' : 's'})`;
+    browser.contextMenus.create({
+      id: `move-to-${w.id}`,
+      parentId: "move-tabs",
+      title: label,
+      contexts: ["tab"]
+    });
+    lastSubmenuWindows.push(w.id);
+  }
+  browser.contextMenus.refresh();
+});
+
+// 3. Handle menu clicks: move tabs if submenu clicked
+browser.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (!tab || !tab.windowId) return;
+  if (info.menuItemId && info.menuItemId.startsWith("move-to-")) {
+    const destWindowId = parseInt(info.menuItemId.split("move-to-")[1], 10);
+    if (!Number.isInteger(destWindowId)) return;
+    // Find all highlighted tabs in the source window, or fallback to clicked tab
+    let tabsToMove = await browser.tabs.query({ windowId: tab.windowId, highlighted: true });
+    if (!tabsToMove.some(t => t.id === tab.id)) {
+      tabsToMove = [tab];
+    }
+    const tabIds = tabsToMove.map(t => t.id);
+    if (tabIds.length > 0) {
+      try {
+        await browser.tabs.move(tabIds, { windowId: destWindowId, index: -1 });
+      } catch (e) {
+        console.error("Failed to move tabs:", e);
+      }
+    }
+  }
+});
