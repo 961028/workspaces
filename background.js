@@ -313,7 +313,7 @@ async function handleOpenWorkspace(workspaceId, sendResponse) {
         }
       }
     }
-    await new Promise((res) => setTimeout(res, 400));
+    await new Promise((res) => setTimeout(res, 1000));
     await setWindowTitlePrefaceForWorkspace(workspace, newWindow.id);
     await setWorkspaces(workspaces, nextId);
     console.info(`Opened workspace ${workspaceId} in new window ${newWindow.id}`);
