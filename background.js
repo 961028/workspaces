@@ -194,6 +194,7 @@ async function handleGetState(sendResponse) {
           windowId: win.id,
           title: activeTab && activeTab.title ? activeTab.title : "(No Tabs)",
           lastActive: windowLastActive[win.id] || 0,
+          tabs: win.tabs || []
         };
       });
 

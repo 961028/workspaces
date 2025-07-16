@@ -45,9 +45,14 @@ function createUnsavedListItem(win, currentWindowId) {
   if (win.windowId && win.windowId === currentWindowId) {
     li.classList.add("highlight");
   }
-  // Add favicon and title (async for live favicon)
+  // Calculate tab count subtitle
+  const tabCount = Array.isArray(win.tabs) ? win.tabs.length : 0;
+  const subtitle = tabCount === 1 ? "1 tab" : `${tabCount} tabs`;
   li.innerHTML = `<img src="default-favicon.png" alt="Favicon" class="favicon">
-                  <span class="label">${win.title || "(Error: No Title)"}</span>
+                  <div class="title-stack">
+                    <span class="label">${win.title || "(Error: No Title)"}</span>
+                    <span class="subtitle">${subtitle}</span>
+                  </div>
                   <button class="save-btn" data-wid="${win.windowId}">Save</button>`;
 
   // Use shared helper for favicon

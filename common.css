@@ -20,6 +20,19 @@
   --popup-900: color-mix(in srgb, var(--Menu), var(--MenuText) 90%);
   --popup-1000: var(--MenuText);
 
+    /* Overlay Colors */
+  --overlay-000: var(--MenuText);
+  --overlay-100: color-mix(in srgb, var(--MenuText) 8%, transparent);
+  --overlay-200: color-mix(in srgb, var(--MenuText) 17%, transparent);
+  --overlay-300: color-mix(in srgb, var(--MenuText) 20%, transparent);
+  --overlay-400: color-mix(in srgb, var(--MenuText) 31%, transparent);
+  --overlay-500: color-mix(in srgb, var(--MenuText) 50%, transparent);
+  --overlay-600: color-mix(in srgb, var(--MenuText) 60%, transparent);
+  --overlay-700: color-mix(in srgb, var(--MenuText) 70%, transparent);
+  --overlay-800: color-mix(in srgb, var(--MenuText) 80%, transparent);
+  --overlay-900: color-mix(in srgb, var(--MenuText) 90%, transparent);
+  --overlay-1000: var(--MenuText);
+
   --shadow: 0px 2px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -27,8 +40,8 @@
    Typography & Sizing
    ========================= */
 :root {
-  --font-size-small: 0.867rem;
-  --font-size-medium: 1rem;
+  --font-size-small: 0.64rem;
+  --font-size-medium: 0.867rem;
   --font-size-large: 1.4rem;
 
   --border-radius-small: 2px;
@@ -45,4 +58,31 @@
   --space-16: 16px;
   --space-20: 20px;
   --space-24: 24px;
+  --space-28: 28px;
+}
+
+/* =========================
+   Custom Context Menu
+   ========================= */
+#context-menu {
+  background-color: var(--popup-000);
+  border: 1px solid var(--popup-200);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  display: none;
+  padding: var(--space-4);
+  position: absolute;
+  z-index: 1000;
+}
+
+#context-menu .context-menu-item {
+  color: var(--popup-1000);
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  font-size: var(--font-size-medium);
+  padding: var(--space-8);
+}
+
+#context-menu .context-menu-item:hover {
+  background-color: var(--popup-300);
 }

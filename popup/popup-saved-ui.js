@@ -40,9 +40,15 @@ function createSavedListItem(workspace, currentWindowId) {
   if (workspace.windowId && workspace.windowId === currentWindowId) {
     li.classList.add("highlight");
   }
+  // Calculate tab count subtitle
+  const tabCount = Array.isArray(workspace.tabs) ? workspace.tabs.length : 0;
+  const subtitle = tabCount === 1 ? "1 tab" : `${tabCount} tabs`;
   li.innerHTML = `
     <img src="default-favicon.png" alt="?" class="favicon">
-    <span class="label">${workspace.title || "(No Title)"}</span>
+    <div class="title-stack">
+      <span class="label">${workspace.title || "(No Title)"}</span>
+      <span class="subtitle">${subtitle}</span>
+    </div>
     <button class="edit-btn" data-wsid="${workspace.id}">Edit</button>
   `;
 
