@@ -313,6 +313,8 @@ async function handleOpenWorkspace(workspaceId, sendResponse) {
         }
       }
     }
+    await new Promise((res) => setTimeout(res, 400));
+    await setWindowTitlePrefaceForWorkspace(workspace, newWindow.id);
     await setWorkspaces(workspaces, nextId);
     console.info(`Opened workspace ${workspaceId} in new window ${newWindow.id}`);
     sendResponse({ success: true, message: "New window opened.", windowId: newWindow.id });
@@ -364,17 +366,7 @@ async function handleRenameWorkspace(workspaceId, newTitle, sendResponse) {
 
     // If the workspace has an associated window, update the window's title
     if (workspaces[workspaceId].windowId) {
-      try {
-        const tabs = await browser.tabs.query({ windowId: workspaces[workspaceId].windowId });
-        const activeTab = tabs.find((tab) => tab.active) || tabs[0];
-        const tabTitle = activeTab?.title || "Untitled Tab";
-        const fullTitle = `${newTitle} - `;
-
-        await browser.windows.update(workspaces[workspaceId].windowId, { titlePreface: fullTitle });
-        console.info(`Updated window title for workspace ${workspaceId}    to "${fullTitle}"`);
-      } catch (error) {
-        console.warn(`Failed to update window title for workspace ${workspaceId}:`, error);
-      }
+      await setWindowTitlePrefaceForWorkspace(workspaces[workspaceId], workspaces[workspaceId].windowId);
     }
 
     await setWorkspaces(workspaces, nextId);
@@ -665,3 +657,16 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     }
   }
 });
+
+// Utility: Set window titlePreface if customTitle exists
+async function setWindowTitlePrefaceForWorkspace(workspace, windowId) {
+  if (workspace && workspace.customTitle && workspace.customTitle.trim() !== "") {
+    const titlePreface = `${workspace.customTitle} - `;
+    try {
+      await browser.windows.update(windowId, { titlePreface });
+      console.info(`Set window title for workspace ${workspace.id} to "${titlePreface}"`);
+    } catch (e) {
+      console.warn(`Failed to set window title for workspace ${workspace.id}:`, e);
+    }
+  }
+}
