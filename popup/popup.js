@@ -182,10 +182,7 @@ function createSavedListItem(workspace, currentWindowId) {
     <button class="edit-btn" data-wsid="${workspace.id}">Edit</button>
   `;
 
-  // Use shared helper for favicon
-  if (window.popupUiHelpers && window.popupUiHelpers.setFavicon) {
-    window.popupUiHelpers.setFavicon(li, workspace.windowId, workspace.favicon || "default-favicon.png");
-  }
+  setFavicon(li, workspace.windowId, workspace.favicon || "default-favicon.png");
 
   // Pointer/click/context menu logic remains, but can be further modularized if needed
   let pointerDragging = false;
@@ -347,14 +344,9 @@ function createUnsavedListItem(win, currentWindowId) {
                   </div>
                   <button class="save-btn" data-wid="${win.windowId}">Save</button>`;
 
-  // Use shared helper for favicon
-  if (window.popupUiHelpers && window.popupUiHelpers.setFavicon) {
-    window.popupUiHelpers.setFavicon(li, win.windowId, "default-favicon.png");
-  }
+  setFavicon(li, win.windowId, "default-favicon.png");
 
-  // Use shared helper for events
-  if (window.popupUiHelpers && window.popupUiHelpers.addListItemEvents) {
-    window.popupUiHelpers.addListItemEvents(li, {
+  addListItemEvents(li, {
       onDragStart: handleDragStartUnsaved,
       onClick: () => {
         sendMessage({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
@@ -364,22 +356,6 @@ function createUnsavedListItem(win, currentWindowId) {
         sendMessage({ action: "saveWindow", windowId: parseInt(win.windowId, 10) });
       }
     });
-  } else {
-    // Fallback to legacy event logic if helpers not loaded
-    li.setAttribute("draggable", "true");
-    li.addEventListener("dragstart", handleDragStartUnsaved);
-    li.addEventListener("click", (e) => {
-      if (e.target.classList.contains("save-btn")) return;
-      sendMessage({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
-    });
-    const saveBtn = li.querySelector(".save-btn");
-    if (saveBtn) {
-      saveBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        sendMessage({ action: "saveWindow", windowId: parseInt(win.windowId, 10) });
-      });
-    }
-  }
   return li;
 }
 
@@ -585,8 +561,6 @@ browser.theme.onUpdated.addListener(async ({ theme, windowId }) => {
   }
 });
 
-setInitialStyle();
-
 // ===== popup-drag.js =====
 /**
  * Handles drag start for unsaved window items.
@@ -639,8 +613,6 @@ function persistSavedOrder() {
  * It is modular and does not interfere with the existing drag-and-drop logic above.
  *
  * To use, add the 'js-list' class to a <ul> or <ol> and 'js-item' to its <li> children.
- *
- * All logic is self-contained and follows the project's coding standards.
  */
 
 'use strict';
@@ -882,9 +854,3 @@ function addListItemEvents(li, { onDragStart, onClick, buttonSelector, onButtonC
     }
   }
 }
-
-// Export helpers for use in other popup scripts
-// (in build, these will be global)
-window.popupUiHelpers = { setFavicon, addListItemEvents };
-
-

@@ -110,7 +110,7 @@ button {
 }
 
 button:hover {
-  background-color: var(--overlay-200);
+  background-color: var(--overlay-300);
 }
 
 /* =========================
@@ -122,7 +122,15 @@ button:hover {
   text-align: center;
 }
 
-.success,
+.success {
+  display: none;
+  border: none;
+  border-radius: var(--border-radius-medium);
+  color: var(--popup-900);
+  font-size: var(--font-size-small);
+  padding: var(--space-8);
+}
+
 .error {
   border: none;
   border-radius: var(--border-radius-medium);
@@ -136,7 +144,7 @@ button:hover {
    ========================= */
 
 .empty-message {
-  padding: var(--space-16);
+  height: var(--space-44);
   text-align: center;
   color: var(--popup-700);
 }

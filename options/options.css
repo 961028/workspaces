@@ -1,7 +1,7 @@
 body {
   margin: var(--space-16);
-  background-color: var(--popup-100);
-  color: var(--popup-900);
+  background-color: #23222b;
+  color: var(--popup-1000);
   padding: var(--space-8);
 }
 
@@ -22,7 +22,7 @@ h2 {
 button {
   font-size: var(--font-size-medium);
   color: var(--popup-900);
-  background-color: transparent;
+  background-color: #414049;
   border: none;
   border-radius: var(--border-radius-small);
   cursor: pointer;
@@ -30,5 +30,5 @@ button {
 }
 
 button:hover {
-  background-color: var(--popup-300);
+  background-color: #57575d;
 }

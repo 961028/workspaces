@@ -73,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const reader = new FileReader();
       reader.onload = evt => processImportData(evt.target.result);
       reader.readAsText(file);
+      fileInput.value = "";
     }
   });
 });
