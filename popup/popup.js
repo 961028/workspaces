@@ -17,6 +17,11 @@ const ITEMS_GAP = 4;
  */
 const EXPORT_FILENAME = "workspace_backup.json";
 
+/**
+ * Default favicon URL for workspace and window items.
+ * @constant {string}
+ */
+const DEFAULT_FAVICON = browser.runtime.getURL('icons/globe-16.svg');
 
 // ===== popup-dom-utils.js =====
 /**
@@ -48,7 +53,6 @@ function reorderItem(list, draggedItem, targetItem, clientY) {
     list.insertBefore(draggedItem, targetItem.nextSibling);
   }
 }
-
 
 // ===== popup-init.js =====
 /**
@@ -125,7 +129,6 @@ async function sendMessage(message) {
     showStatus(error.message || "Communication error with background script.", true);
   }
 }
-
 
 // ===== popup-saved-ui.js =====
 /**
@@ -285,7 +288,6 @@ function createSavedListItem(workspace, currentWindowId) {
   return li;
 }
 
-
 // ===== popup-unsaved-ui.js =====
 /**
  * Updates the unsaved windows list in the popup.
@@ -358,7 +360,6 @@ function createUnsavedListItem(win, currentWindowId) {
     });
   return li;
 }
-
 
 // ===== popup-context-menu.js =====
 let contextMenuEl; // Global context menu element
@@ -517,7 +518,6 @@ function showStatus(message, isError) {
   }
 }
 
-
 // ===== popup-theme.js =====
 /**
  * Retrieves and applies the current theme to the popup.
@@ -606,7 +606,6 @@ function persistSavedOrder() {
   }
 }
 
-
 // ===== popup-drag-pointer.js =====
 /**
  * This section implements a pointer-based drag-and-drop reordering widget for list items.
@@ -624,6 +623,9 @@ let pointerStartX = 0; // X position where pointer started
 let pointerStartY = 0; // Y position where pointer started
 let items = []; // Cached list of items
 
+/**
+ * Sets up pointer-based drag-and-drop for the saved list.
+ */
 function setupPointerDnD() {
   const list = getDomElement("saved-list");
   if (!list) return;
@@ -632,6 +634,10 @@ function setupPointerDnD() {
   list.addEventListener('pointerdown', pointerDownHandler);
 }
 
+/**
+ * Handles pointer down event for drag start.
+ * @param {PointerEvent} e
+ */
 function pointerDownHandler(e) {
   if (e.button !== 0) return;
   draggableItem = e.target.closest('.js-item');
@@ -649,6 +655,10 @@ function pointerDownHandler(e) {
   draggableItem.addEventListener('pointercancel', pointerUpHandler);
 }
 
+/**
+ * Handles pointer move event for dragging.
+ * @param {PointerEvent} e
+ */
 function pointerMoveHandler(e) {
   if (!draggableItem) return;
   e.preventDefault();
@@ -660,6 +670,10 @@ function pointerMoveHandler(e) {
   updateIdleItemsStateAndPosition();
 }
 
+/**
+ * Handles pointer up event to finish dragging.
+ * @param {PointerEvent} e
+ */
 function pointerUpHandler(e) {
   if (!draggableItem) return;
   draggableItem.removeEventListener('pointermove', pointerMoveHandler);
@@ -671,12 +685,18 @@ function pointerUpHandler(e) {
   cleanup();
 }
 
+/**
+ * Initializes the draggable item state.
+ */
 function initDraggableItem() {
   if (!draggableItem) return;
   draggableItem.classList.remove('is-idle');
   draggableItem.classList.add('is-draggable');
 }
 
+/**
+ * Initializes the state of idle items for drag-and-drop.
+ */
 function initItemsState() {
   getIdleItems().forEach((item, index) => {
     if (getAllItems().indexOf(draggableItem) > index) {
@@ -685,6 +705,9 @@ function initItemsState() {
   });
 }
 
+/**
+ * Updates the state and position of idle items during drag.
+ */
 function updateIdleItemsStateAndPosition() {
   if (!draggableItem) return;
   const draggableRect = draggableItem.getBoundingClientRect();
@@ -716,24 +739,45 @@ function updateIdleItemsStateAndPosition() {
   });
 }
 
+/**
+ * Returns all draggable items in the list.
+ * @returns {HTMLElement[]}
+ */
 function getAllItems() {
   if (!listContainer) return [];
   items = Array.from(listContainer.querySelectorAll('.js-item'));
   return items;
 }
 
+/**
+ * Returns all idle (non-dragged) items.
+ * @returns {HTMLElement[]}
+ */
 function getIdleItems() {
   return getAllItems().filter((item) => item.classList.contains('is-idle'));
 }
 
+/**
+ * Checks if an item is above the dragged item.
+ * @param {HTMLElement} item
+ * @returns {boolean}
+ */
 function isItemAbove(item) {
   return item.hasAttribute('data-is-above');
 }
 
+/**
+ * Checks if an item is toggled for movement.
+ * @param {HTMLElement} item
+ * @returns {boolean}
+ */
 function isItemToggled(item) {
   return item.hasAttribute('data-is-toggled');
 }
 
+/**
+ * Applies the new order of items after drag-and-drop.
+ */
 function applyNewItemsOrder() {
   const reorderedItems = [];
   getAllItems().forEach((item, index) => {
@@ -777,6 +821,9 @@ function disablePageScroll() {
   document.body.style.userSelect = 'none';
 }
 
+/**
+ * Enables page scrolling by removing the overflow:hidden style from the body.
+ */
 function enablePageScroll() {
   document.body.style.overflow = '';
   document.body.style.touchAction = '';
