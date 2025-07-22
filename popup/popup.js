@@ -23,6 +23,18 @@ const EXPORT_FILENAME = "workspace_backup.json";
  */
 const DEFAULT_FAVICON = browser.runtime.getURL('icons/globe-16.svg');
 
+/**
+ * Margin in pixels to keep context menu within viewport bounds.
+ * @constant {number}
+ */
+const CONTEXT_MENU_MARGIN = 20;
+
+/**
+ * Threshold in pixels to detect pointer drag for workspace items.
+ * @constant {number}
+ */
+const POINTER_DRAG_THRESHOLD = 5;
+
 // ===== popup-dom-utils.js =====
 /**
  * Retrieves a DOM element by its ID and logs a warning if it is not found.
@@ -190,7 +202,6 @@ function createSavedListItem(workspace, currentWindowId) {
   // Pointer/click/context menu logic remains modular
   let pointerDragging = false;
   let pointerStartX = 0, pointerStartY = 0;
-  const DRAG_THRESHOLD = 5;
   function isContextMenuOpenForThis() {
     return (
       contextMenuEl &&
@@ -215,7 +226,7 @@ function createSavedListItem(workspace, currentWindowId) {
     if (e.target.closest(".edit-btn") || e.target.closest("#context-menu") || e.button === 2) return;
     const dx = Math.abs(e.clientX - pointerStartX);
     const dy = Math.abs(e.clientY - pointerStartY);
-    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+    if (dx > POINTER_DRAG_THRESHOLD || dy > POINTER_DRAG_THRESHOLD) {
       pointerDragging = true;
     }
   });
@@ -429,18 +440,18 @@ function showContextMenu(e, workspaceId) {
     let left = e.clientX;
     let top = e.clientY;
 
-    // Ensure the menu is within 20px of the viewport bounds
-    if (left + menuWidth > viewportWidth - 20) {
-      left = viewportWidth - menuWidth - 20;
+    // Ensure the menu is within CONTEXT_MENU_MARGIN px of the viewport bounds
+    if (left + menuWidth > viewportWidth - CONTEXT_MENU_MARGIN) {
+      left = viewportWidth - menuWidth - CONTEXT_MENU_MARGIN;
     }
-    if (top + menuHeight > viewportHeight - 20) {
-      top = viewportHeight - menuHeight - 20;
+    if (top + menuHeight > viewportHeight - CONTEXT_MENU_MARGIN) {
+      top = viewportHeight - menuHeight - CONTEXT_MENU_MARGIN;
     }
-    if (left < 20) {
-      left = 20;
+    if (left < CONTEXT_MENU_MARGIN) {
+      left = CONTEXT_MENU_MARGIN;
     }
-    if (top < 20) {
-      top = 20;
+    if (top < CONTEXT_MENU_MARGIN) {
+      top = CONTEXT_MENU_MARGIN;
     }
 
     contextMenuEl.style.left = `${left}px`;
@@ -905,6 +916,7 @@ function addListItemEvents(li, { onDragStart, onClick, buttonSelector, onButtonC
     if (btn) {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        e.preventDefault();
         onButtonClick(e);
       });
     }
