@@ -609,10 +609,8 @@ function persistSavedOrder() {
 // ===== popup-drag-pointer.js =====
 /**
  * Implements a pointer-based drag-and-drop reordering widget for list items.
- * Modular and does not interfere with the existing drag-and-drop logic above.
  * To use, add the 'js-list' class to a <ul> or <ol> and 'js-item' to its <li> children.
  */
-'use strict';
 
 /**
  * Global variables and cached elements for the widget
