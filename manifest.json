@@ -6,7 +6,7 @@
   "permissions": ["tabs", "storage", "unlimitedStorage", "windows", "menus", "contextMenus", "tabGroups"],
   "browser_action": {
     "default_popup": "popup/popup.html",
-    "default_icon": "icons/icon.png"
+    "default_icon": "icons/icon-light.svg"
   },
   "background": {
     "scripts": ["background.js"],
