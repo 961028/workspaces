@@ -74,9 +74,9 @@ class PopupApp {
    */
   async init() {
     try {
-      createContextMenu();
+      contextMenu.create();
       await loadState();
-      document.addEventListener("click", hideContextMenu);
+      document.addEventListener("click", () => contextMenu.hide());
       await setInitialStyle();
     } catch (error) {
       console.error("Error during popup initialization:", error);
@@ -202,23 +202,8 @@ function createSavedListItem(workspace, currentWindowId) {
 
   setFavicon(li, workspace.windowId, workspace.favicon || DEFAULT_FAVICON);
 
-  // Pointer/click/context menu logic remains modular
   let pointerDragging = false;
   let pointerStartX = 0, pointerStartY = 0;
-  function isContextMenuOpenForThis() {
-    return (
-      contextMenuEl &&
-      contextMenuEl.style.display === "block" &&
-      contextMenuOpenForWorkspaceId == workspace.id
-    );
-  }
-  function isContextMenuOpenForOther() {
-    return (
-      contextMenuEl &&
-      contextMenuEl.style.display === "block" &&
-      contextMenuOpenForWorkspaceId != workspace.id
-    );
-  }
   li.addEventListener("pointerdown", (e) => {
     if (e.target.closest(".edit-btn") || e.target.closest("#context-menu") || e.button === 2) return;
     pointerDragging = false;
@@ -235,13 +220,13 @@ function createSavedListItem(workspace, currentWindowId) {
   });
   li.addEventListener("pointerup", (e) => {
     if (e.target.closest(".edit-btn") || e.target.closest("#context-menu")) return;
-    if (isContextMenuOpenForOther()) {
-      hideContextMenu();
+    if (contextMenu.isOpenForOtherWorkspace(workspace.id)) {
+      contextMenu.hide();
       pointerDragging = false;
       return;
     }
-    if (isContextMenuOpenForThis()) {
-      hideContextMenu();
+    if (contextMenu.isOpenForWorkspace(workspace.id)) {
+      contextMenu.hide();
       pointerDragging = false;
       return;
     }
@@ -252,29 +237,29 @@ function createSavedListItem(workspace, currentWindowId) {
   });
   li.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    if (isContextMenuOpenForThis()) {
-      hideContextMenu();
+    if (contextMenu.isOpenForWorkspace(workspace.id)) {
+      contextMenu.hide();
       return;
     }
-    if (isContextMenuOpenForOther()) {
-      hideContextMenu();
+    if (contextMenu.isOpenForOtherWorkspace(workspace.id)) {
+      contextMenu.hide();
     }
-    showContextMenu(e, workspace.id);
+    contextMenu.show(e, workspace.id);
   });
   const editBtn = li.querySelector(".edit-btn");
   if (editBtn) {
     editBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       e.preventDefault();
-      if (isContextMenuOpenForThis()) {
-        hideContextMenu();
+      if (contextMenu.isOpenForWorkspace(workspace.id)) {
+        contextMenu.hide();
         return;
       }
-      if (isContextMenuOpenForOther()) {
-        hideContextMenu();
+      if (contextMenu.isOpenForOtherWorkspace(workspace.id)) {
+        contextMenu.hide();
       }
       const rect = editBtn.getBoundingClientRect();
-      showContextMenu(
+      contextMenu.show(
         { clientX: rect.left, clientY: rect.bottom, preventDefault: () => {} },
         parseInt(workspace.id, 10)
       );
@@ -282,15 +267,15 @@ function createSavedListItem(workspace, currentWindowId) {
     editBtn.addEventListener("contextmenu", (e) => {
       e.stopPropagation();
       e.preventDefault();
-      if (isContextMenuOpenForThis()) {
-        hideContextMenu();
+      if (contextMenu.isOpenForWorkspace(workspace.id)) {
+        contextMenu.hide();
         return;
       }
-      if (isContextMenuOpenForOther()) {
-        hideContextMenu();
+      if (contextMenu.isOpenForOtherWorkspace(workspace.id)) {
+        contextMenu.hide();
       }
       const rect = editBtn.getBoundingClientRect();
-      showContextMenu(
+      contextMenu.show(
         { clientX: rect.left, clientY: rect.bottom, preventDefault: () => {} },
         parseInt(workspace.id, 10)
       );
@@ -376,137 +361,125 @@ function createUnsavedListItem(win, currentWindowId) {
 }
 
 // ===== popup-context-menu.js =====
-let contextMenuEl; // Global context menu element
-let contextMenuOpenForWorkspaceId = null; // Track which workspace the context menu is open for
+// Refactored: ContextMenu class encapsulates all context menu logic
+class ContextMenu {
+  constructor() {
+    this.contextMenuEl = null;
+    this.contextMenuOpenForWorkspaceId = null;
+  }
 
-/**
- * Creates a context menu item element with the given label, class, and click handler.
- * @param {string} label - The text label for the menu item.
- * @param {string} className - The CSS class for the menu item.
- * @param {Function} onClick - The click event handler.
- * @returns {HTMLElement} The created menu item element.
- */
-function createContextMenuItem(label, className, onClick) {
-  const item = document.createElement("div");
-  item.textContent = label;
-  item.className = className;
-  item.addEventListener("click", onClick);
-  return item;
-}
+  createContextMenuItem(label, className, onClick) {
+    const item = document.createElement("div");
+    item.textContent = label;
+    item.className = className;
+    item.addEventListener("click", onClick);
+    return item;
+  }
 
-/**
- * Creates and appends the custom context menu to the document body.
- */
-function createContextMenu() {
-  try {
-    contextMenuEl = document.createElement("div");
-    contextMenuEl.id = "context-menu";
-
-    // Use modular item creation
-    const renameItem = createContextMenuItem("Rename", "context-menu-item", onRenameClick);
-    const unsaveItem = createContextMenuItem("Unsave", "context-menu-item", onUnsaveClick);
-
-    contextMenuEl.appendChild(renameItem);
-    contextMenuEl.appendChild(unsaveItem);
-    document.body.appendChild(contextMenuEl);
-  } catch (error) {
-    console.error("Error creating context menu:", error);
-    if (typeof showStatus === 'function') {
-      showStatus("Failed to create context menu.", true);
+  create() {
+    try {
+      this.contextMenuEl = document.createElement("div");
+      this.contextMenuEl.id = "context-menu";
+      const renameItem = this.createContextMenuItem("Rename", "context-menu-item", () => this.onRenameClick());
+      const unsaveItem = this.createContextMenuItem("Unsave", "context-menu-item", () => this.onUnsaveClick());
+      this.contextMenuEl.appendChild(renameItem);
+      this.contextMenuEl.appendChild(unsaveItem);
+      document.body.appendChild(this.contextMenuEl);
+    } catch (error) {
+      console.error("Error creating context menu:", error);
+      if (typeof showStatus === 'function') {
+        showStatus("Failed to create context menu.", true);
+      }
     }
+  }
+
+  show(e, workspaceId) {
+    if (!this.contextMenuEl) {
+      console.error("Context menu not initialized.");
+      if (typeof showStatus === 'function') {
+        showStatus("Context menu not initialized.", true);
+      }
+      return;
+    }
+    try {
+      this.contextMenuEl.style.visibility = "hidden";
+      this.contextMenuEl.style.display = "block";
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const menuWidth = this.contextMenuEl.offsetWidth;
+      const menuHeight = this.contextMenuEl.offsetHeight;
+      let left = e.clientX;
+      let top = e.clientY;
+      if (left + menuWidth > viewportWidth - CONTEXT_MENU_MARGIN) {
+        left = viewportWidth - menuWidth - CONTEXT_MENU_MARGIN;
+      }
+      if (top + menuHeight > viewportHeight - CONTEXT_MENU_MARGIN) {
+        top = viewportHeight - menuHeight - CONTEXT_MENU_MARGIN;
+      }
+      if (left < CONTEXT_MENU_MARGIN) {
+        left = CONTEXT_MENU_MARGIN;
+      }
+      if (top < CONTEXT_MENU_MARGIN) {
+        top = CONTEXT_MENU_MARGIN;
+      }
+      this.contextMenuEl.style.left = `${left}px`;
+      this.contextMenuEl.style.top = `${top}px`;
+      this.contextMenuEl.style.visibility = "visible";
+      this.contextMenuEl.style.display = "block";
+      this.contextMenuOpenForWorkspaceId = workspaceId;
+      this.contextMenuEl.dataset.wsid = workspaceId;
+    } catch (error) {
+      console.error("Error showing context menu:", error);
+      if (typeof showStatus === 'function') {
+        showStatus("Failed to show context menu.", true);
+      }
+    }
+  }
+
+  hide() {
+    if (this.contextMenuEl) {
+      this.contextMenuEl.style.display = "none";
+      this.contextMenuOpenForWorkspaceId = null;
+    } else {
+      console.warn("Context menu element is not defined.");
+    }
+  }
+
+  onRenameClick() {
+    this.hide();
+    const wsid = parseInt(this.contextMenuEl?.dataset.wsid, 10);
+    const newTitle = prompt("Enter new name for workspace:");
+    if (newTitle && newTitle.trim() !== "") {
+      sendMessage({ action: "renameWorkspace", workspaceId: wsid, newTitle: newTitle.trim() });
+    } else {
+      console.info("Rename canceled due to empty input.");
+    }
+  }
+
+  onUnsaveClick() {
+    this.hide();
+    const wsid = parseInt(this.contextMenuEl?.dataset.wsid, 10);
+    sendMessage({ action: "unsaveWorkspace", workspaceId: wsid });
+  }
+
+  isOpenForWorkspace(workspaceId) {
+    return (
+      this.contextMenuEl &&
+      this.contextMenuEl.style.display === "block" &&
+      this.contextMenuOpenForWorkspaceId == workspaceId
+    );
+  }
+  isOpenForOtherWorkspace(workspaceId) {
+    return (
+      this.contextMenuEl &&
+      this.contextMenuEl.style.display === "block" &&
+      this.contextMenuOpenForWorkspaceId != workspaceId
+    );
   }
 }
 
-/**
- * Displays the context menu at the mouse event position, ensuring it stays within bounds.
- * @param {MouseEvent} e - The right-click event.
- * @param {number} workspaceId - The workspace ID for the menu.
- */
-function showContextMenu(e, workspaceId) {
-  if (!contextMenuEl) {
-    console.error("Context menu not initialized.");
-    if (typeof showStatus === 'function') {
-      showStatus("Context menu not initialized.", true);
-    }
-    return;
-  }
-  try {
-    // Temporarily make the context menu visible to calculate its dimensions
-    contextMenuEl.style.visibility = "hidden";
-    contextMenuEl.style.display = "block";
+const contextMenu = new ContextMenu();
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const menuWidth = contextMenuEl.offsetWidth;
-    const menuHeight = contextMenuEl.offsetHeight;
-
-    let left = e.clientX;
-    let top = e.clientY;
-
-    // Ensure the menu is within CONTEXT_MENU_MARGIN px of the viewport bounds
-    if (left + menuWidth > viewportWidth - CONTEXT_MENU_MARGIN) {
-      left = viewportWidth - menuWidth - CONTEXT_MENU_MARGIN;
-    }
-    if (top + menuHeight > viewportHeight - CONTEXT_MENU_MARGIN) {
-      top = viewportHeight - menuHeight - CONTEXT_MENU_MARGIN;
-    }
-    if (left < CONTEXT_MENU_MARGIN) {
-      left = CONTEXT_MENU_MARGIN;
-    }
-    if (top < CONTEXT_MENU_MARGIN) {
-      top = CONTEXT_MENU_MARGIN;
-    }
-
-    contextMenuEl.style.left = `${left}px`;
-    contextMenuEl.style.top = `${top}px`;
-    contextMenuEl.style.visibility = "visible";
-    contextMenuEl.style.display = "block";
-    contextMenuOpenForWorkspaceId = workspaceId;
-    contextMenuEl.dataset.wsid = workspaceId;
-  } catch (error) {
-    console.error("Error showing context menu:", error);
-    if (typeof showStatus === 'function') {
-      showStatus("Failed to show context menu.", true);
-    }
-  }
-}
-
-/**
- * Hides the custom context menu.
- */
-function hideContextMenu() {
-  if (contextMenuEl) {
-    contextMenuEl.style.display = "none";
-    contextMenuOpenForWorkspaceId = null;
-  } else {
-    console.warn("Context menu element is not defined.");
-  }
-}
-
-/**
- * Handles the "Rename" action by prompting for a new name.
- */
-function onRenameClick() {
-  hideContextMenu();
-  const wsid = parseInt(contextMenuEl?.dataset.wsid, 10);
-  const newTitle = prompt("Enter new name for workspace:");
-  if (newTitle && newTitle.trim() !== "") {
-    sendMessage({ action: "renameWorkspace", workspaceId: wsid, newTitle: newTitle.trim() });
-  } else {
-    console.info("Rename canceled due to empty input.");
-  }
-}
-
-/**
- * Handles the "Unsave" action.
- */
-function onUnsaveClick() {
-  hideContextMenu();
-  const wsid = parseInt(contextMenuEl?.dataset.wsid, 10);
-  sendMessage({ action: "unsaveWorkspace", workspaceId: wsid });
-}
-
-// disable the default context menu everywhere
 document.addEventListener('contextmenu', e => {
   e.preventDefault();
 });
