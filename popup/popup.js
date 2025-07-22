@@ -177,7 +177,7 @@ function createSavedListItem(workspace, currentWindowId) {
   const tabCount = Array.isArray(workspace.tabs) ? workspace.tabs.length : 0;
   const subtitle = tabCount === 1 ? "1 Tab" : `${tabCount} Tabs`;
   li.innerHTML = `
-    <img src="default-favicon.png" alt="?" class="favicon">
+    <img src="${DEFAULT_FAVICON}" alt="?" class="favicon">
     <div class="title-stack">
       <span class="label">${workspace.title || "(No Title)"}</span>
       <span class="subtitle">${subtitle}</span>
@@ -185,7 +185,7 @@ function createSavedListItem(workspace, currentWindowId) {
     <button class="edit-btn" data-wsid="${workspace.id}">Edit</button>
   `;
 
-  setFavicon(li, workspace.windowId, workspace.favicon || "default-favicon.png");
+  setFavicon(li, workspace.windowId, workspace.favicon || DEFAULT_FAVICON);
 
   // Pointer/click/context menu logic remains modular
   let pointerDragging = false;
@@ -332,21 +332,21 @@ function createUnsavedListItem(win, currentWindowId) {
   }
   const li = document.createElement("li");
   li.dataset.wid = win.windowId;
-  li.className = "unsaved-item";
+  li.className = "unsaved-item js-item is-idle";
   if (win.windowId && win.windowId === currentWindowId) {
     li.classList.add("highlight");
   }
   // Calculate tab count subtitle
   const tabCount = Array.isArray(win.tabs) ? win.tabs.length : 0;
   const subtitle = tabCount === 1 ? "1 Tab" : `${tabCount} Tabs`;
-  li.innerHTML = `<img src="default-favicon.png" alt="?" class="favicon">
+  li.innerHTML = `<img src="${DEFAULT_FAVICON}" alt="?" class="favicon">
                   <div class="title-stack">
                     <span class="label">${win.title || "(Error: No Title)"}</span>
                     <span class="subtitle">${subtitle}</span>
                   </div>
                   <button class="save-btn" data-wid="${win.windowId}">Save</button>`;
 
-  setFavicon(li, win.windowId, "default-favicon.png");
+  setFavicon(li, win.windowId, DEFAULT_FAVICON);
 
   addListItemEvents(li, {
       onDragStart: handleDragStartUnsaved,
