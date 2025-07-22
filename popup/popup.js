@@ -187,7 +187,7 @@ function createSavedListItem(workspace, currentWindowId) {
 
   setFavicon(li, workspace.windowId, workspace.favicon || "default-favicon.png");
 
-  // Pointer/click/context menu logic remains, but can be further modularized if needed
+  // Pointer/click/context menu logic remains modular
   let pointerDragging = false;
   let pointerStartX = 0, pointerStartY = 0;
   const DRAG_THRESHOLD = 5;
@@ -311,7 +311,7 @@ function updateUnsavedList(unsaved, currentWindowId) {
 
   list.innerHTML = "";
   if (!Array.isArray(unsaved) || unsaved.length === 0) {
-    //list.innerHTML = "<li>No unsaved windows</li>";
+    // list.innerHTML = "<li>No unsaved windows</li>";
     return;
   }
   unsaved.forEach((win) => {
@@ -608,15 +608,15 @@ function persistSavedOrder() {
 
 // ===== popup-drag-pointer.js =====
 /**
- * This section implements a pointer-based drag-and-drop reordering widget for list items.
- * It is modular and does not interfere with the existing drag-and-drop logic above.
- *
+ * Implements a pointer-based drag-and-drop reordering widget for list items.
+ * Modular and does not interfere with the existing drag-and-drop logic above.
  * To use, add the 'js-list' class to a <ul> or <ol> and 'js-item' to its <li> children.
  */
-
 'use strict';
 
-// Global variables and cached elements for the widget
+/**
+ * Global variables and cached elements for the widget
+ */
 let listContainer = null; // The container element for the draggable list
 let draggableItem = null; // The item currently being dragged
 let pointerStartX = 0; // X position where pointer started
@@ -799,6 +799,9 @@ function applyNewItemsOrder() {
   });
 }
 
+/**
+ * Unsets the draggable item state and resets its style.
+ */
 function unsetDraggableItem() {
   if (!draggableItem) return;
   draggableItem.style.transform = '';
@@ -807,6 +810,9 @@ function unsetDraggableItem() {
   draggableItem = null;
 }
 
+/**
+ * Unsets the state of all idle items.
+ */
 function unsetItemState() {
   getIdleItems().forEach((item) => {
     delete item.dataset.isAbove;
@@ -815,6 +821,9 @@ function unsetItemState() {
   });
 }
 
+/**
+ * Disables page scrolling and text selection during drag.
+ */
 function disablePageScroll() {
   document.body.style.overflow = 'hidden';
   document.body.style.touchAction = 'none';
@@ -830,13 +839,15 @@ function enablePageScroll() {
   document.body.style.userSelect = '';
 }
 
+/**
+ * Cleans up drag state and resets all items and page scroll.
+ */
 function cleanup() {
   items = [];
   unsetDraggableItem();
   unsetItemState();
   enablePageScroll();
 }
-
 
 // ===== popup-ui-helpers.js =====
 /**
