@@ -125,7 +125,7 @@ class WorkspaceList {
     list.innerHTML = "";
     list.classList.add("js-list");
     if (!Array.isArray(saved) || saved.length === 0) {
-      list.innerHTML = '<div class="empty-message">You don\'t have any saved windows yet.</div>';
+      list.innerHTML = '<div class="empty-message">You haven\'t saved any windows yet.</div>';
       return;
     }
     saved.sort((a, b) => (a.order || 0) - (b.order || 0));
