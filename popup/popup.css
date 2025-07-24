@@ -80,7 +80,7 @@ li.highlight {
 
 .subtitle {
   font-size: var(--font-size-small);
-  color: var(--popup-700);
+  color: var(--popup-600);
   margin-right: var(--space-8);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -104,7 +104,7 @@ button {
   border: none;
   border-radius: var(--border-radius-small);
   cursor: pointer;
-  padding: var(--space-4) var(--space-8);
+  padding: var(--space-8) var(--space-12);
 }
 
 button:hover {
