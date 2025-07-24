@@ -147,6 +147,9 @@ button:hover {
 
 .empty-message {
   height: var(--space-44);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: var(--popup-700);
 }
