@@ -1,4 +1,3 @@
-// ===== popup-constants.js =====
 /**
  * Global constant defining status message display time in milliseconds.
  * @constant {number}
@@ -9,7 +8,7 @@ const STATUS_DISPLAY_TIME = 3000;
  * Gap between items in pixels for pointer-based drag-and-drop.
  * @constant {number}
  */
-const ITEMS_GAP = 4;
+const ITEMS_GAP = 8;
 
 /**
  * Default download filename for workspace export.
@@ -35,7 +34,6 @@ const CONTEXT_MENU_MARGIN = 20;
  */
 const POINTER_DRAG_THRESHOLD = 5;
 
-// ===== popup-dom-utils.js =====
 /**
  * Retrieves a DOM element by its ID and logs a warning if it is not found.
  * @param {string} id - The ID of the element.
@@ -49,24 +47,42 @@ function getDomElement(id) {
   return element;
 }
 
+
 /**
- * Inserts a dragged item before or after a target item based on vertical position.
- * @param {HTMLElement} list - The parent list element.
- * @param {HTMLElement} draggedItem - The item being dragged.
- * @param {HTMLElement} targetItem - The target item at drop.
- * @param {number} clientY - The Y-coordinate of the drop event.
+ * Sets the favicon for a list item if available from the browser tab or fallback.
+ * Caches favicons per windowId to reduce flicker and unnecessary browser API calls.
+ * @param {HTMLElement} li - The list item element.
+ * @param {number} windowId - The window ID to query for favicon.
+ * @param {string} [fallback] - Optional fallback favicon URL.
  */
-function reorderItem(list, draggedItem, targetItem, clientY) {
-  const bounding = targetItem.getBoundingClientRect();
-  const offset = clientY - bounding.top;
-  if (offset < bounding.height / 2) {
-    list.insertBefore(draggedItem, targetItem);
+const faviconCache = {};
+function setFavicon(li, windowId, fallback) {
+  const defaultFallback = browser.runtime.getURL('icons/globe-16.svg');
+  const iconToUse = fallback || defaultFallback;
+  const img = li.querySelector('.favicon');
+  if (!img) return;
+  if (windowId) {
+    if (faviconCache[windowId]) {
+      img.src = faviconCache[windowId];
+      return;
+    }
+    browser.tabs.query({ windowId, active: true }).then((tabs) => {
+      if (tabs && tabs[0] && tabs[0].favIconUrl) {
+        faviconCache[windowId] = tabs[0].favIconUrl;
+        img.src = tabs[0].favIconUrl;
+      } else {
+        faviconCache[windowId] = iconToUse;
+        img.src = iconToUse;
+      }
+    }).catch(() => {
+      faviconCache[windowId] = iconToUse;
+      img.src = iconToUse;
+    });
   } else {
-    list.insertBefore(draggedItem, targetItem.nextSibling);
+    img.src = iconToUse;
   }
 }
 
-// ===== popup-init.js =====
 class PopupApp {
   /**
    * Initializes the popup by setting up context menus, drag-and-drop listeners, loading state, and theme.
@@ -94,7 +110,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// ===== popup-state.js =====
 /**
  * Loads the state by retrieving the current window and fetching workspace data.
  * @returns {Promise<void>}
@@ -146,7 +161,6 @@ async function sendMessage(message) {
   }
 }
 
-// ===== popup-saved-ui.js =====
 /**
  * Updates the saved workspaces list in the popup.
  * @param {Array<Object>} saved - Array of saved workspace objects.
@@ -168,8 +182,11 @@ function updateSavedList(saved, currentWindowId) {
     list.appendChild(createSavedListItem(ws, currentWindowId));
   });
 
-  // Re-initialize pointer-based drag-and-drop after DOM update
-  setupPointerDnD();
+  // Only set up drag-and-drop once, not after every drag
+  if (!list._dndInitialized) {
+    dragAndDropManager.setupPointerDnD();
+    list._dndInitialized = true;
+  }
 }
 
 /**
@@ -288,7 +305,6 @@ function createSavedListItem(workspace, currentWindowId) {
   return li;
 }
 
-// ===== popup-unsaved-ui.js =====
 /**
  * Updates the unsaved windows list in the popup.
  * @param {Array<Object>} unsaved - Array of unsaved window objects.
@@ -348,7 +364,7 @@ function createUnsavedListItem(win, currentWindowId) {
 
   setFavicon(li, win.windowId, DEFAULT_FAVICON);
 
-  addListItemEvents(li, {
+  dragAndDropManager.addListItemEvents(li, {
       onDragStart: handleDragStartUnsaved,
       onClick: () => {
         sendMessage({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
@@ -361,7 +377,6 @@ function createUnsavedListItem(win, currentWindowId) {
   return li;
 }
 
-// ===== popup-context-menu.js =====
 // Refactored: ContextMenu class encapsulates all context menu logic
 class ContextMenu {
   constructor() {
@@ -479,7 +494,6 @@ document.addEventListener('contextmenu', e => {
   e.preventDefault();
 });
 
-// ===== popup-status.js =====
 class StatusBar {
   constructor(statusId = "status") {
     this.statusEl = getDomElement(statusId);
@@ -508,7 +522,6 @@ function showStatus(message, isError) {
   statusBar.show(message, isError);
 }
 
-// ===== popup-theme.js =====
 class ThemeManager {
   async setInitialStyle() {
     try {
@@ -548,7 +561,6 @@ class ThemeManager {
 
 const themeManager = new ThemeManager();
 
-// ===== popup-drag.js =====
 /**
  * Handles drag start for unsaved window items.
  * Sets the dataTransfer payload and effect for the drag event.
@@ -587,308 +599,201 @@ function persistSavedOrder() {
   }
 }
 
-// ===== popup-drag-pointer.js =====
-/**
- * Implements a pointer-based drag-and-drop reordering widget for list items.
- * To use, add the 'js-list' class to a <ul> or <ol> and 'js-item' to its <li> children.
- */
+class DragAndDropManager {
+  constructor() {
+    this.listContainer = null;
+    this.draggableItem = null;
+    this.pointerStartX = 0;
+    this.pointerStartY = 0;
+    this.items = [];
+  }
 
-/**
- * Global variables and cached elements for the widget
- */
-let listContainer = null; // The container element for the draggable list
-let draggableItem = null; // The item currently being dragged
-let pointerStartX = 0; // X position where pointer started
-let pointerStartY = 0; // Y position where pointer started
-let items = []; // Cached list of items
+  setupPointerDnD() {
+    const list = getDomElement("saved-list");
+    if (!list) return;
+    this.listContainer = list;
+    this.listContainer.onpointerdown = null;
+    this.listContainer.addEventListener('pointerdown', this.pointerDownHandler.bind(this));
+  }
 
-/**
- * Sets up pointer-based drag-and-drop for the saved list.
- */
-function setupPointerDnD() {
-  const list = getDomElement("saved-list");
-  if (!list) return;
-  listContainer = list;
-  list.onpointerdown = null;
-  list.addEventListener('pointerdown', pointerDownHandler);
-}
+  pointerDownHandler(e) {
+    if (e.button !== 0) return;
+    this.draggableItem = e.target.closest('.js-item');
+    if (!this.draggableItem) return;
+    this.pointerStartX = e.clientX;
+    this.pointerStartY = e.clientY;
+    this.disablePageScroll();
+    this.initDraggableItem();
+    this.initItemsState();
+    this.draggableItem.setPointerCapture(e.pointerId);
+    this.draggableItem.addEventListener('pointermove', this.pointerMoveHandler.bind(this));
+    this.draggableItem.addEventListener('pointerup', this.pointerUpHandler.bind(this));
+    this.draggableItem.addEventListener('pointercancel', this.pointerUpHandler.bind(this));
+  }
 
-/**
- * Handles pointer down event for drag start.
- * @param {PointerEvent} e
- */
-function pointerDownHandler(e) {
-  if (e.button !== 0) return;
-  draggableItem = e.target.closest('.js-item');
-  if (!draggableItem) return;
-  pointerStartX = e.clientX;
-  pointerStartY = e.clientY;
+  pointerMoveHandler(e) {
+    if (!this.draggableItem) return;
+    e.preventDefault();
+    const currentX = e.clientX;
+    const currentY = e.clientY;
+    const offsetX = currentX - this.pointerStartX;
+    const offsetY = currentY - this.pointerStartY;
+    this.draggableItem.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+    this.updateIdleItemsStateAndPosition();
+  }
 
-  disablePageScroll();
-  initDraggableItem();
-  initItemsState();
+  pointerUpHandler(e) {
+    if (!this.draggableItem) return;
+    this.draggableItem.removeEventListener('pointermove', this.pointerMoveHandler.bind(this));
+    this.draggableItem.removeEventListener('pointerup', this.pointerUpHandler.bind(this));
+    this.draggableItem.removeEventListener('pointercancel', this.pointerUpHandler.bind(this));
+    this.draggableItem.releasePointerCapture(e.pointerId);
+    this.applyNewItemsOrder();
+    persistSavedOrder();
+    this.cleanup();
+  }
 
-  draggableItem.setPointerCapture(e.pointerId);
-  draggableItem.addEventListener('pointermove', pointerMoveHandler);
-  draggableItem.addEventListener('pointerup', pointerUpHandler);
-  draggableItem.addEventListener('pointercancel', pointerUpHandler);
-}
+  initDraggableItem() {
+    if (!this.draggableItem) return;
+    this.draggableItem.classList.remove('is-idle');
+    this.draggableItem.classList.add('is-draggable');
+  }
 
-/**
- * Handles pointer move event for dragging.
- * @param {PointerEvent} e
- */
-function pointerMoveHandler(e) {
-  if (!draggableItem) return;
-  e.preventDefault();
-  const currentX = e.clientX;
-  const currentY = e.clientY;
-  const offsetX = currentX - pointerStartX;
-  const offsetY = currentY - pointerStartY;
-  draggableItem.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-  updateIdleItemsStateAndPosition();
-}
-
-/**
- * Handles pointer up event to finish dragging.
- * @param {PointerEvent} e
- */
-function pointerUpHandler(e) {
-  if (!draggableItem) return;
-  draggableItem.removeEventListener('pointermove', pointerMoveHandler);
-  draggableItem.removeEventListener('pointerup', pointerUpHandler);
-  draggableItem.removeEventListener('pointercancel', pointerUpHandler);
-  draggableItem.releasePointerCapture(e.pointerId);
-  applyNewItemsOrder();
-  persistSavedOrder();
-  cleanup();
-}
-
-/**
- * Initializes the draggable item state.
- */
-function initDraggableItem() {
-  if (!draggableItem) return;
-  draggableItem.classList.remove('is-idle');
-  draggableItem.classList.add('is-draggable');
-}
-
-/**
- * Initializes the state of idle items for drag-and-drop.
- */
-function initItemsState() {
-  getIdleItems().forEach((item, index) => {
-    if (getAllItems().indexOf(draggableItem) > index) {
-      item.dataset.isAbove = 'true';
-    }
-  });
-}
-
-/**
- * Updates the state and position of idle items during drag.
- */
-function updateIdleItemsStateAndPosition() {
-  if (!draggableItem) return;
-  const draggableRect = draggableItem.getBoundingClientRect();
-  const draggableCenterY = draggableRect.top + draggableRect.height / 2;
-  getIdleItems().forEach((item) => {
-    const itemRect = item.getBoundingClientRect();
-    const itemCenterY = itemRect.top + itemRect.height / 2;
-    if (isItemAbove(item)) {
-      if (draggableCenterY <= itemCenterY) {
-        item.dataset.isToggled = 'true';
-      } else {
-        delete item.dataset.isToggled;
+  initItemsState() {
+    this.getIdleItems().forEach((item, index) => {
+      if (this.getAllItems().indexOf(this.draggableItem) > index) {
+        item.dataset.isAbove = 'true';
       }
-    } else {
-      if (draggableCenterY >= itemCenterY) {
-        item.dataset.isToggled = 'true';
+    });
+  }
+
+  updateIdleItemsStateAndPosition() {
+    if (!this.draggableItem) return;
+    const draggableRect = this.draggableItem.getBoundingClientRect();
+    const draggableCenterY = draggableRect.top + draggableRect.height / 2;
+    this.getIdleItems().forEach((item) => {
+      const itemRect = item.getBoundingClientRect();
+      const itemCenterY = itemRect.top + itemRect.height / 2;
+      if (this.isItemAbove(item)) {
+        if (draggableCenterY <= itemCenterY) {
+          item.dataset.isToggled = 'true';
+        } else {
+          delete item.dataset.isToggled;
+        }
       } else {
-        delete item.dataset.isToggled;
+        if (draggableCenterY >= itemCenterY) {
+          item.dataset.isToggled = 'true';
+        } else {
+          delete item.dataset.isToggled;
+        }
+      }
+    });
+    this.getIdleItems().forEach((item) => {
+      if (this.isItemToggled(item)) {
+        const direction = this.isItemAbove(item) ? 1 : -1;
+        item.style.transform = `translateY(${direction * (draggableRect.height + ITEMS_GAP)}px)`;
+      } else {
+        item.style.transform = '';
+      }
+    });
+  }
+
+  getAllItems() {
+    if (!this.listContainer) return [];
+    this.items = Array.from(this.listContainer.querySelectorAll('.js-item'));
+    return this.items;
+  }
+
+  getIdleItems() {
+    return this.getAllItems().filter((item) => item.classList.contains('is-idle'));
+  }
+
+  isItemAbove(item) {
+    return item.hasAttribute('data-is-above');
+  }
+
+  isItemToggled(item) {
+    return item.hasAttribute('data-is-toggled');
+  }
+
+  applyNewItemsOrder() {
+    const reorderedItems = [];
+    this.getAllItems().forEach((item, index) => {
+      if (item === this.draggableItem) return;
+      if (!this.isItemToggled(item)) {
+        reorderedItems[index] = item;
+      } else {
+        const newIndex = this.isItemAbove(item) ? index + 1 : index - 1;
+        reorderedItems[newIndex] = item;
+      }
+    });
+    for (let index = 0; index < this.getAllItems().length; index++) {
+      if (typeof reorderedItems[index] === 'undefined') {
+        reorderedItems[index] = this.draggableItem;
       }
     }
-  });
-  getIdleItems().forEach((item) => {
-    if (isItemToggled(item)) {
-      const direction = isItemAbove(item) ? 1 : -1;
-      item.style.transform = `translateY(${direction * (draggableRect.height + ITEMS_GAP)}px)`;
-    } else {
+    reorderedItems.forEach((item) => {
+      this.listContainer.appendChild(item);
+    });
+  }
+
+  unsetDraggableItem() {
+    if (!this.draggableItem) return;
+    this.draggableItem.style.transform = '';
+    this.draggableItem.classList.remove('is-draggable');
+    this.draggableItem.classList.add('is-idle');
+    this.draggableItem = null;
+  }
+
+  unsetItemState() {
+    this.getIdleItems().forEach((item) => {
+      delete item.dataset.isAbove;
+      delete item.dataset.isToggled;
       item.style.transform = '';
-    }
-  });
-}
-
-/**
- * Returns all draggable items in the list.
- * @returns {HTMLElement[]}
- */
-function getAllItems() {
-  if (!listContainer) return [];
-  items = Array.from(listContainer.querySelectorAll('.js-item'));
-  return items;
-}
-
-/**
- * Returns all idle (non-dragged) items.
- * @returns {HTMLElement[]}
- */
-function getIdleItems() {
-  return getAllItems().filter((item) => item.classList.contains('is-idle'));
-}
-
-/**
- * Checks if an item is above the dragged item.
- * @param {HTMLElement} item
- * @returns {boolean}
- */
-function isItemAbove(item) {
-  return item.hasAttribute('data-is-above');
-}
-
-/**
- * Checks if an item is toggled for movement.
- * @param {HTMLElement} item
- * @returns {boolean}
- */
-function isItemToggled(item) {
-  return item.hasAttribute('data-is-toggled');
-}
-
-/**
- * Applies the new order of items after drag-and-drop.
- */
-function applyNewItemsOrder() {
-  const reorderedItems = [];
-  getAllItems().forEach((item, index) => {
-    if (item === draggableItem) return;
-    if (!isItemToggled(item)) {
-      reorderedItems[index] = item;
-    } else {
-      const newIndex = isItemAbove(item) ? index + 1 : index - 1;
-      reorderedItems[newIndex] = item;
-    }
-  });
-  for (let index = 0; index < getAllItems().length; index++) {
-    if (typeof reorderedItems[index] === 'undefined') {
-      reorderedItems[index] = draggableItem;
-    }
-  }
-  reorderedItems.forEach((item) => {
-    listContainer.appendChild(item);
-  });
-}
-
-/**
- * Unsets the draggable item state and resets its style.
- */
-function unsetDraggableItem() {
-  if (!draggableItem) return;
-  draggableItem.style.transform = '';
-  draggableItem.classList.remove('is-draggable');
-  draggableItem.classList.add('is-idle');
-  draggableItem = null;
-}
-
-/**
- * Unsets the state of all idle items.
- */
-function unsetItemState() {
-  getIdleItems().forEach((item) => {
-    delete item.dataset.isAbove;
-    delete item.dataset.isToggled;
-    item.style.transform = '';
-  });
-}
-
-/**
- * Disables page scrolling and text selection during drag.
- */
-function disablePageScroll() {
-  document.body.style.overflow = 'hidden';
-  document.body.style.touchAction = 'none';
-  document.body.style.userSelect = 'none';
-}
-
-/**
- * Enables page scrolling by removing the overflow:hidden style from the body.
- */
-function enablePageScroll() {
-  document.body.style.overflow = '';
-  document.body.style.touchAction = '';
-  document.body.style.userSelect = '';
-}
-
-/**
- * Cleans up drag state and resets all items and page scroll.
- */
-function cleanup() {
-  items = [];
-  unsetDraggableItem();
-  unsetItemState();
-  enablePageScroll();
-}
-
-// ===== popup-ui-helpers.js =====
-/**
- * Shared popup UI helpers for workspace and window list items.
- * Provides reusable logic for creating list items and handling common events.
- */
-
-/**
- * Sets the favicon for a list item if available from the browser tab or fallback.
- * @param {HTMLElement} li - The list item element.
- * @param {number} windowId - The window ID to query for favicon.
- * @param {string} [fallback] - Optional fallback favicon URL.
- */
-function setFavicon(li, windowId, fallback) {
-  const defaultFallback = browser.runtime.getURL('icons/globe-16.svg');
-  const iconToUse = fallback || defaultFallback;
-  if (windowId) {
-    browser.tabs.query({ windowId, active: true }).then((tabs) => {
-      const img = li.querySelector('.favicon');
-      if (tabs && tabs[0] && tabs[0].favIconUrl) {
-        if (img) img.src = tabs[0].favIconUrl;
-      } else if (img) {
-        img.src = iconToUse;
-      }
-    }).catch(() => {
-      const img = li.querySelector('.favicon');
-      if (img) img.src = iconToUse;
-    });
-  } else {
-    const img = li.querySelector('.favicon');
-    if (img) img.src = iconToUse;
-  }
-}
-
-/**
- * Adds drag and click event listeners to a list item for workspace/window actions.
- * @param {HTMLElement} li - The list item element.
- * @param {Object} options - Options for event handling.
- * @param {Function} [options.onDragStart] - Handler for drag start.
- * @param {Function} [options.onClick] - Handler for click (excluding button clicks).
- * @param {string} [options.buttonSelector] - Selector for action button inside li.
- * @param {Function} [options.onButtonClick] - Handler for button click.
- */
-function addListItemEvents(li, { onDragStart, onClick, buttonSelector, onButtonClick }) {
-  if (onDragStart) {
-    li.setAttribute('draggable', 'true');
-    li.addEventListener('dragstart', onDragStart);
-  }
-  if (onClick) {
-    li.addEventListener('click', (e) => {
-      if (buttonSelector && e.target.classList.contains(buttonSelector.replace('.', ''))) return;
-      onClick(e);
     });
   }
-  if (buttonSelector && onButtonClick) {
-    const btn = li.querySelector(buttonSelector);
-    if (btn) {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        onButtonClick(e);
+
+  disablePageScroll() {
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    document.body.style.userSelect = 'none';
+  }
+
+  enablePageScroll() {
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
+    document.body.style.userSelect = '';
+  }
+
+  cleanup() {
+    this.items = [];
+    this.unsetDraggableItem();
+    this.unsetItemState();
+    this.enablePageScroll();
+  }
+
+  addListItemEvents(li, { onDragStart, onClick, buttonSelector, onButtonClick }) {
+    if (onDragStart) {
+      li.setAttribute('draggable', 'true');
+      li.addEventListener('dragstart', onDragStart);
+    }
+    if (onClick) {
+      li.addEventListener('click', (e) => {
+        if (buttonSelector && e.target.classList.contains(buttonSelector.replace('.', ''))) return;
+        onClick(e);
       });
     }
+    if (buttonSelector && onButtonClick) {
+      const btn = li.querySelector(buttonSelector);
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onButtonClick(e);
+        });
+      }
+    }
   }
 }
+
+const dragAndDropManager = new DragAndDropManager();
