@@ -302,7 +302,7 @@ class WorkspaceList {
                     <button class="save-btn" data-wid="${win.windowId}">Save</button>`;
     this.setFavicon(li, win.windowId, DEFAULT_FAVICON);
     this.dragAndDropManager.addListItemEvents(li, {
-        onDragStart: handleDragStartUnsaved,
+        onDragStart: this.handleDragStartUnsaved,
         onClick: () => {
           sendMessage({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
         },
@@ -312,6 +312,17 @@ class WorkspaceList {
         }
       });
     return li;
+  }
+
+  handleDragStartUnsaved(e) {
+    try {
+      if (!e?.dataTransfer || !e.currentTarget) return;
+      e.dataTransfer.setData("unsavedWindowId", e.currentTarget.dataset.wid);
+      e.dataTransfer.effectAllowed = "copy";
+    } catch (error) {
+      console.error("Error in handleDragStartUnsaved:", error);
+      statusBar.show("Failed to start drag operation.", true);
+    }
   }
 
   setFavicon(li, windowId, fallback) {
@@ -480,10 +491,6 @@ class StatusBar {
   }
 }
 
-function showStatus(message, isError) {
-  statusBar.show(message, isError);
-}
-
 class ThemeManager {
   async setInitialStyle() {
     try {
@@ -518,22 +525,6 @@ class ThemeManager {
         console.error("Error handling theme update:", error);
       }
     });
-  }
-}
-
-/**
- * Handles drag start for unsaved window items.
- * Sets the dataTransfer payload and effect for the drag event.
- * @param {DragEvent} e - The drag event.
- */
-function handleDragStartUnsaved(e) {
-  try {
-    if (!e?.dataTransfer || !e.currentTarget) return;
-    e.dataTransfer.setData("unsavedWindowId", e.currentTarget.dataset.wid);
-    e.dataTransfer.effectAllowed = "copy";
-  } catch (error) {
-    console.error("Error in handleDragStartUnsaved:", error);
-    statusBar.show("Failed to start drag operation.", true);
   }
 }
 
