@@ -27,7 +27,6 @@ ul {
 li {
   align-items: center;
   border-radius: var(--border-radius-medium);
-  /* border: 1px solid transparent; */
   display: flex;
   margin: var(--space-8) 0;
   padding: var(--space-8);
@@ -35,18 +34,15 @@ li {
 
 li:hover {
   background-color: var(--popup-300);
-  /* border: 1px solid transparent; */
   box-sizing: border-box;
 }
 
 li.highlight {
   background-color: var(--popup-400);
-  /* border: 1px solid transparent; */
   box-shadow: var(--shadow);
 }
 
 .saved-item {
-  /* border: 1px solid var(--popup-200); */
   box-sizing: border-box;
 }
 
