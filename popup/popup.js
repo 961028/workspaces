@@ -34,19 +34,6 @@ const CONTEXT_MENU_MARGIN = 20;
  */
 const POINTER_DRAG_THRESHOLD = 5;
 
-/**
- * Retrieves a DOM element by its ID and logs a warning if it is not found.
- * @param {string} id - The ID of the element.
- * @returns {HTMLElement|null} The DOM element or null if not found.
- */
-function getDomElement(id) {
-  const element = document.getElementById(id);
-  if (!element) {
-    console.warn(`Element with id "${id}" not found.`);
-  }
-  return element;
-}
-
 class PopupApp {
   /**
    * Initializes the popup by setting up context menus, drag-and-drop listeners, loading state, and theme.
@@ -126,15 +113,14 @@ async function sendMessage(message) {
 }
 
 class WorkspaceList {
-  constructor(getDomElement, dragAndDropManager, statusBar) {
-    this.getDomElement = getDomElement;
+  constructor(dragAndDropManager, statusBar) {
     this.dragAndDropManager = dragAndDropManager;
     this.statusBar = statusBar;
     this.faviconCache = {};
   }
 
   updateSavedList(saved, currentWindowId) {
-    const list = this.getDomElement("saved-list");
+    const list = document.getElementById("saved-list");
     if (!list) return;
     list.innerHTML = "";
     list.classList.add("js-list");
@@ -261,7 +247,7 @@ class WorkspaceList {
   }
 
   updateUnsavedList(unsaved, currentWindowId) {
-    const list = this.getDomElement("unsaved-list");
+    const list = document.getElementById("unsaved-list");
     const hr = document.querySelector("hr");
     if (!list) return;
     if (unsaved && unsaved.length > 0) {
@@ -469,7 +455,7 @@ document.addEventListener('contextmenu', e => {
 
 class StatusBar {
   constructor(statusId = "status") {
-    this.statusEl = getDomElement(statusId);
+    this.statusEl = document.getElementById(statusId);
     this.timeoutId = null;
   }
 
@@ -534,7 +520,7 @@ class ThemeManager {
  */
 function persistSavedOrder() {
   try {
-    const savedList = getDomElement("saved-list");
+    const savedList = document.getElementById("saved-list");
     if (!savedList) {
       console.error("Cannot persist order; saved list element not found.");
       statusBar.show("Failed to persist order.", true);
@@ -560,7 +546,7 @@ class DragAndDropManager {
   }
 
   setupPointerDnD() {
-    const list = getDomElement("saved-list");
+    const list = document.getElementById("saved-list");
     if (!list) return;
     this.listContainer = list;
     this.listContainer.onpointerdown = null;
@@ -749,6 +735,6 @@ class DragAndDropManager {
 
 const dragAndDropManager = new DragAndDropManager();
 const statusBar = new StatusBar();
-const workspaceList = new WorkspaceList(getDomElement, dragAndDropManager, statusBar);
+const workspaceList = new WorkspaceList(dragAndDropManager, statusBar);
 const themeManager = new ThemeManager();
 const contextMenu = new ContextMenu();
