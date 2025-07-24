@@ -104,7 +104,7 @@ async function loadState() {
     const currentWindow = await browser.windows.getLastFocused();
     if (!currentWindow || !currentWindow.id) {
       console.warn("Could not retrieve current window info.");
-      showStatus("Failed to retrieve window information.", true);
+      statusBar.show("Failed to retrieve window information.", true);
       return;
     }
     const currentWindowId = currentWindow.id;
@@ -113,11 +113,11 @@ async function loadState() {
       updateSavedList(response.saved, currentWindowId);
       updateUnsavedList(response.unsaved, currentWindowId);
     } else {
-      showStatus(response?.error || "Failed to retrieve state.", true);
+      statusBar.show(response?.error || "Failed to retrieve state.", true);
     }
   } catch (err) {
     console.error("State load error:", err);
-    showStatus(err.message || "Error retrieving state.", true);
+    statusBar.show(err.message || "Error retrieving state.", true);
   }
 }
 
@@ -129,20 +129,20 @@ async function loadState() {
 async function sendMessage(message) {
   if (!message || typeof message !== "object") {
     console.error("Invalid message object:", message);
-    showStatus("Invalid message data.", true);
+    statusBar.show("Invalid message data.", true);
     return;
   }
   try {
     const response = await browser.runtime.sendMessage(message);
     if (response && response.success) {
-      showStatus(response.message || "Action completed.", false);
+      statusBar.show(response.message || "Action completed.", false);
     } else {
-      showStatus(response?.error || "Action failed.", true);
+      statusBar.show(response?.error || "Action failed.", true);
     }
     await loadState();
   } catch (error) {
     console.error("Error in sendMessage:", error);
-    showStatus(error.message || "Communication error with background script.", true);
+    statusBar.show(error.message || "Communication error with background script.", true);
   }
 }
 
@@ -388,18 +388,14 @@ class ContextMenu {
       document.body.appendChild(this.contextMenuEl);
     } catch (error) {
       console.error("Error creating context menu:", error);
-      if (typeof showStatus === 'function') {
-        showStatus("Failed to create context menu.", true);
-      }
+      statusBar.show("Failed to create context menu.", true);
     }
   }
 
   show(e, workspaceId) {
     if (!this.contextMenuEl) {
       console.error("Context menu not initialized.");
-      if (typeof showStatus === 'function') {
-        showStatus("Context menu not initialized.", true);
-      }
+      statusBar.show("Context menu not initialized.", true);
       return;
     }
     try {
@@ -431,9 +427,7 @@ class ContextMenu {
       this.contextMenuEl.dataset.wsid = workspaceId;
     } catch (error) {
       console.error("Error showing context menu:", error);
-      if (typeof showStatus === 'function') {
-        showStatus("Failed to show context menu.", true);
-      }
+      statusBar.show("Failed to show context menu.", true);
     }
   }
 
@@ -486,24 +480,32 @@ document.addEventListener('contextmenu', e => {
 });
 
 // ===== popup-status.js =====
-/**
- * Displays a status message to the user and automatically clears it.
- * @param {string} message - The message text.
- * @param {boolean} isError - Whether the message indicates an error.
- */
-function showStatus(message, isError) {
-  try {
-    const statusEl = getDomElement("status");
-    if (!statusEl) return;
-    statusEl.textContent = message;
-    statusEl.className = isError ? "error" : "success";
-    setTimeout(() => {
-      statusEl.textContent = "";
-      statusEl.className = "";
-    }, STATUS_DISPLAY_TIME);
-  } catch (error) {
-    console.error("Error displaying status message:", error);
+class StatusBar {
+  constructor(statusId = "status") {
+    this.statusEl = getDomElement(statusId);
+    this.timeoutId = null;
   }
+
+  show(message, isError) {
+    try {
+      if (!this.statusEl) return;
+      this.statusEl.textContent = message;
+      this.statusEl.className = isError ? "error" : "success";
+      if (this.timeoutId) clearTimeout(this.timeoutId);
+      this.timeoutId = setTimeout(() => {
+        this.statusEl.textContent = "";
+        this.statusEl.className = "";
+      }, STATUS_DISPLAY_TIME);
+    } catch (error) {
+      console.error("Error displaying status message:", error);
+    }
+  }
+}
+
+const statusBar = new StatusBar();
+
+function showStatus(message, isError) {
+  statusBar.show(message, isError);
 }
 
 // ===== popup-theme.js =====
@@ -559,9 +561,7 @@ function handleDragStartUnsaved(e) {
     e.dataTransfer.effectAllowed = "copy";
   } catch (error) {
     console.error("Error in handleDragStartUnsaved:", error);
-    if (typeof showStatus === 'function') {
-      showStatus("Failed to start drag operation.", true);
-    }
+    statusBar.show("Failed to start drag operation.", true);
   }
 }
 
@@ -574,9 +574,7 @@ function persistSavedOrder() {
     const savedList = getDomElement("saved-list");
     if (!savedList) {
       console.error("Cannot persist order; saved list element not found.");
-      if (typeof showStatus === 'function') {
-        showStatus("Failed to persist order.", true);
-      }
+      statusBar.show("Failed to persist order.", true);
       return;
     }
     const order = Array.from(savedList.querySelectorAll("li.saved-item")).map((item) =>
@@ -585,9 +583,7 @@ function persistSavedOrder() {
     sendMessage({ action: "updateOrder", newOrder: order });
   } catch (error) {
     console.error("Error in persistSavedOrder:", error);
-    if (typeof showStatus === 'function') {
-      showStatus("Failed to persist order.", true);
-    }
+    statusBar.show("Failed to persist order.", true);
   }
 }
 
