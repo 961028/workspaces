@@ -67,6 +67,8 @@ li.highlight {
 
 .js-item.is-draggable {
   transition: none !important;
+  z-index: 10;
+  position: relative;
 }
 
 /* =========================
