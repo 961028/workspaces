@@ -190,7 +190,7 @@ async function updateWorkspaceForWindow(workspaces, winId, tabs) {
 			workspaces[wsId].tabs = tabs.map((tab) => tab.url);
 			workspaces[wsId].groupRanges = groupRanges;
 			// Only update title if no custom title has been set.
-			if (workspaces[wsId].customTitle === undefined) {
+			if (!workspaces[wsId].customTitle) {
 				workspaces[wsId].title = activeTab ? activeTab.title : "";
 			}
 		}
