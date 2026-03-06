@@ -154,11 +154,13 @@ class WorkspaceList {
     li.innerHTML = `
       <img src="${DEFAULT_FAVICON}" alt="?" class="favicon">
       <div class="title-stack">
-        <span class="label">${workspace.title || "(No Title)"}</span>
-        <span class="subtitle">${subtitle}</span>
+        <span class="label"></span>
+        <span class="subtitle"></span>
       </div>
       <button class="edit-btn" data-wsid="${workspace.id}">Edit</button>
     `;
+    li.querySelector('.label').textContent = workspace.title || "(No Title)";
+    li.querySelector('.subtitle').textContent = subtitle;
     this.setFavicon(li, workspace.windowId, workspace.favicon || DEFAULT_FAVICON);
 
     let pointerDragging = false;
@@ -282,10 +284,12 @@ class WorkspaceList {
     const subtitle = tabCount === 1 ? "1 Tab" : `${tabCount} Tabs`;
     li.innerHTML = `<img src="${DEFAULT_FAVICON}" alt="?" class="favicon">
                     <div class="title-stack">
-                      <span class="label">${win.title || "(Error: No Title)"}</span>
-                      <span class="subtitle">${subtitle}</span>
+                      <span class="label"></span>
+                      <span class="subtitle"></span>
                     </div>
                     <button class="save-btn" data-wid="${win.windowId}">Save</button>`;
+    li.querySelector('.label').textContent = win.title || "(Error: No Title)";
+    li.querySelector('.subtitle').textContent = subtitle;
     this.setFavicon(li, win.windowId, DEFAULT_FAVICON);
     this.dragAndDropManager.addListItemEvents(li, {
         onDragStart: this.handleDragStartUnsaved,

@@ -457,9 +457,18 @@ async function handleImportWorkspace(msg, sendResponse) {
       !importedData ||
       typeof importedData !== "object" ||
       !importedData.workspaces ||
-      importedData.nextId === undefined
+      typeof importedData.workspaces !== "object" ||
+      typeof importedData.nextId !== "number" ||
+      importedData.nextId < 1
     ) {
       return sendResponse({ success: false, error: "Invalid import data." });
+    }
+    // Sanitize all URLs in imported workspaces
+    for (const wsId of Object.keys(importedData.workspaces)) {
+      const ws = importedData.workspaces[wsId];
+      if (ws && Array.isArray(ws.tabs)) {
+        ws.tabs = sanitizeUrls(ws.tabs);
+      }
     }
     await setWorkspaces(importedData.workspaces, importedData.nextId);
     console.info("Imported workspaces successfully.");
