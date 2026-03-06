@@ -389,7 +389,12 @@ describe("background.js", () => {
 			ctx.__getPendingUpdates().add(999);
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: {id: 1, windowId: 10, tabs: []},
+					1: {
+						id: 1,
+						windowId: 10,
+						tabs: ["https://original.com"],
+						title: "Original",
+					},
 				},
 				nextId: 2,
 			});
@@ -402,7 +407,8 @@ describe("background.js", () => {
 			const ws =
 				browserMock.storage.local.set.mock.calls[0][0].workspaces;
 			// The workspace for window 10 should be untouched
-			expect(ws[1].tabs).toEqual([]);
+			expect(ws[1].tabs).toEqual(["https://original.com"]);
+			expect(ws[1].title).toBe("Original");
 		});
 
 		test("handles errors from tabs.query gracefully", async () => {

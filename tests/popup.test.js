@@ -488,8 +488,9 @@ describe("popup.js", () => {
 			dnd.applyNewItemsOrder();
 
 			const children = Array.from(list.children);
-			// li2 (dragged) should fill the gap
 			expect(children).toHaveLength(3);
+			// li3 (toggled, not above) moved up; li2 (dragged) filled the gap below
+			expect(children.map((c) => c.textContent)).toEqual(["A", "C", "B"]);
 		});
 
 		test("addListItemEvents attaches click handler", () => {

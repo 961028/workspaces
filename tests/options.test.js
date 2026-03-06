@@ -157,10 +157,6 @@ describe("options.js", () => {
 			loadOptionsPage(browserMock);
 		});
 
-		test("export button is wired up", () => {
-			expect(document.getElementById("export-btn")).toBeTruthy();
-		});
-
 		test("sends exportWorkspaces message and triggers download", async () => {
 			browserMock.runtime.sendMessage.mockResolvedValue({
 				success: true,
@@ -238,6 +234,42 @@ describe("options.js", () => {
 
 			importBtn.click();
 			expect(clickSpy).toHaveBeenCalled();
+		});
+	});
+
+	// ─── 3.5 processImportData edge cases ──────────────────────────
+	describe("processImportData() – non-string input", () => {
+		beforeEach(() => {
+			loadOptionsPage(browserMock);
+		});
+
+		test("shows error for undefined input", async () => {
+			await processImportData(undefined);
+			const statusEl = document.getElementById("status");
+			expect(statusEl.style.color).toBe("red");
+			expect(statusEl.textContent.length).toBeGreaterThan(0);
+		});
+
+		test("sends null to background which rejects it", async () => {
+			browserMock.runtime.sendMessage.mockResolvedValue({
+				success: false,
+				error: "Invalid import data.",
+			});
+			await processImportData(null);
+			const statusEl = document.getElementById("status");
+			expect(statusEl.style.color).toBe("red");
+			expect(statusEl.textContent).toBe("Invalid import data.");
+		});
+
+		test("sends number to background which rejects it", async () => {
+			browserMock.runtime.sendMessage.mockResolvedValue({
+				success: false,
+				error: "Invalid import data.",
+			});
+			await processImportData(123);
+			const statusEl = document.getElementById("status");
+			expect(statusEl.style.color).toBe("red");
+			expect(statusEl.textContent).toBe("Invalid import data.");
 		});
 	});
 });
