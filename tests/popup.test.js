@@ -135,10 +135,16 @@ describe("popup.js", () => {
 			expect(style.getPropertyValue("--MenuText")).toBe("#abcdef");
 		});
 
-		test("applyThemeStyle does nothing when theme has no colors", () => {
-			// Should not throw
-			expect(() => themeManager.applyThemeStyle({})).not.toThrow();
-			expect(() => themeManager.applyThemeStyle(null)).not.toThrow();
+		test("applyThemeStyle does not set CSS variables when theme has no colors", () => {
+			const style = document.documentElement.style;
+			style.setProperty("--Menu", "original");
+			style.setProperty("--MenuText", "original");
+			themeManager.applyThemeStyle({});
+			expect(style.getPropertyValue("--Menu")).toBe("original");
+			expect(style.getPropertyValue("--MenuText")).toBe("original");
+			themeManager.applyThemeStyle(null);
+			expect(style.getPropertyValue("--Menu")).toBe("original");
+			expect(style.getPropertyValue("--MenuText")).toBe("original");
 		});
 
 		test("listenForThemeUpdates registers listener", () => {

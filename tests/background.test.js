@@ -416,6 +416,23 @@ describe("background.js", () => {
 			expect(ctx.console.error).toHaveBeenCalled();
 		});
 
+		test("still clears pendingUpdates when setWorkspaces fails", async () => {
+			ctx.__getPendingUpdates().add(10);
+			browserMock.storage.local.get.mockResolvedValue({
+				workspaces: {1: {id: 1, windowId: 10, tabs: []}},
+				nextId: 2,
+			});
+			browserMock.tabs.query.mockResolvedValue([
+				{url: "https://a.com", title: "A", active: true, index: 0},
+			]);
+			browserMock.tabGroups.query.mockResolvedValue([]);
+			browserMock.storage.local.set.mockRejectedValue(new Error("write fail"));
+			await ctx.processPendingUpdates();
+			// pendingUpdates is cleared even if storage write fails
+			expect(ctx.__getPendingUpdates().size).toBe(0);
+			expect(ctx.console.error).toHaveBeenCalled();
+		});
+
 		test("does nothing meaningful when pendingUpdates is empty", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {},
@@ -498,6 +515,29 @@ describe("background.js", () => {
 			expect(workspaces[1].title).toBe("Old");
 		});
 
+		test("resumes auto-title when customTitle is cleared to empty string", async () => {
+			const workspaces = {
+				1: {
+					id: 1,
+					windowId: 10,
+					tabs: [],
+					title: "Old",
+					customTitle: "",
+				},
+			};
+			browserMock.tabGroups.query.mockResolvedValue([]);
+			const tabs = [
+				{
+					url: "https://a.com",
+					title: "New Active Tab",
+					active: true,
+					index: 0,
+				},
+			];
+			await ctx.updateWorkspaceForWindow(workspaces, 10, tabs);
+			expect(workspaces[1].title).toBe("New Active Tab");
+		});
+
 		test("returns early on empty tabs", async () => {
 			const workspaces = {
 				1: {id: 1, windowId: 10, tabs: ["old"]},
@@ -570,14 +610,26 @@ describe("background.js", () => {
 			expect(resp.unsaved[1].windowId).toBe(20);
 		});
 
-		test("sends error when getWorkspaces fails", async () => {
+		test("returns defaults when getWorkspaces fails (internal catch)", async () => {
 			browserMock.storage.local.get.mockRejectedValue(new Error("fail"));
 			const sendResponse = jest.fn();
-			// getWorkspaces returns defaults on error but windows.getAll may still work
 			browserMock.windows.getAll.mockResolvedValue([]);
 			await ctx.handleGetState(sendResponse);
 			const resp = sendResponse.mock.calls[0][0];
-			expect(resp.success).toBe(true); // getWorkspaces catches internally
+			// getWorkspaces catches internally and returns defaults, so getState succeeds
+			expect(resp.success).toBe(true);
+			expect(resp.saved).toEqual([]);
+			expect(resp.unsaved).toEqual([]);
+		});
+
+		test("sends error when windows.getAll fails", async () => {
+			browserMock.storage.local.get.mockResolvedValue({workspaces: {}, nextId: 1});
+			browserMock.windows.getAll.mockRejectedValue(new Error("windows fail"));
+			const sendResponse = jest.fn();
+			await ctx.handleGetState(sendResponse);
+			const resp = sendResponse.mock.calls[0][0];
+			expect(resp.success).toBe(false);
+			expect(resp.error).toBe("windows fail");
 		});
 	});
 
@@ -763,6 +815,27 @@ describe("background.js", () => {
 			await promise;
 			expect(browserMock.windows.create).toHaveBeenCalled();
 		});
+
+		test("handles workspace with undefined tabs gracefully", async () => {
+			browserMock.storage.local.get.mockResolvedValue({
+				workspaces: {
+					1: {
+						id: 1,
+						windowId: null,
+						groupRanges: [],
+					},
+				},
+				nextId: 2,
+			});
+			browserMock.windows.create.mockResolvedValue({id: 100});
+			browserMock.tabs.query.mockResolvedValue([]);
+			const sendResponse = jest.fn();
+			const promise = ctx.handleOpenWorkspace(1, sendResponse);
+			await jest.advanceTimersByTimeAsync(3000);
+			await promise;
+			expect(sendResponse.mock.calls[0][0].success).toBe(true);
+			expect(browserMock.windows.create).toHaveBeenCalledWith({url: []});
+		});
 	});
 
 	// ─── 1.12 handleUnsaveWorkspace ─────────────────────────────────
@@ -839,7 +912,7 @@ describe("background.js", () => {
 			expect(sendResponse.mock.calls[0][0].success).toBe(false);
 		});
 
-		test("handles empty string title", async () => {
+		test("handles empty string title and sets both fields", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {1: {id: 1, windowId: null}},
 				nextId: 2,
@@ -849,6 +922,7 @@ describe("background.js", () => {
 			const ws =
 				browserMock.storage.local.set.mock.calls[0][0].workspaces[1];
 			expect(ws.customTitle).toBe("");
+			expect(ws.title).toBe("");
 		});
 	});
 
@@ -1020,103 +1094,100 @@ describe("background.js", () => {
 
 	// ─── 1.18 Message Router ────────────────────────────────────────
 	describe("Message Router", () => {
-		test("routes getState correctly", () => {
+		test("routes getState and calls handleGetState", async () => {
+			browserMock.storage.local.get.mockResolvedValue({workspaces: {}, nextId: 1});
+			browserMock.windows.getAll.mockResolvedValue([]);
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
 			const result = listener({action: "getState"}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: true, saved: expect.any(Array)}));
 		});
 
-		test("routes saveWindow correctly", () => {
+		test("routes saveWindow and calls handleSaveWindow", async () => {
+			browserMock.tabs.query.mockResolvedValue([]);
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			const result = listener(
-				{action: "saveWindow", windowId: 10},
-				{},
-				sendResponse,
-			);
+			const result = listener({action: "saveWindow", windowId: 10}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: false}));
 		});
 
-		test("routes openWorkspace correctly", () => {
+		test("routes openWorkspace and calls handleOpenWorkspace", async () => {
+			browserMock.storage.local.get.mockResolvedValue({workspaces: {}, nextId: 1});
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			const result = listener(
-				{action: "openWorkspace", workspaceId: 1},
-				{},
-				sendResponse,
-			);
+			const result = listener({action: "openWorkspace", workspaceId: 999}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: false, error: "Workspace not found."}));
 		});
 
-		test("routes focusWindow correctly", () => {
+		test("routes focusWindow and calls focusWindow handler", async () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			const result = listener(
-				{action: "focusWindow", windowId: 10},
-				{},
-				sendResponse,
-			);
+			const result = listener({action: "focusWindow", windowId: 10}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(browserMock.windows.update).toHaveBeenCalledWith(10, {focused: true});
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: true}));
 		});
 
-		test("routes unsaveWorkspace correctly", () => {
+		test("routes unsaveWorkspace and calls handleUnsaveWorkspace", async () => {
+			browserMock.storage.local.get.mockResolvedValue({workspaces: {}, nextId: 1});
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			const result = listener(
-				{action: "unsaveWorkspace", workspaceId: 1},
-				{},
-				sendResponse,
-			);
+			const result = listener({action: "unsaveWorkspace", workspaceId: 1}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: false}));
 		});
 
-		test("routes renameWorkspace correctly", () => {
+		test("routes renameWorkspace and calls handleRenameWorkspace", async () => {
+			browserMock.storage.local.get.mockResolvedValue({workspaces: {1: {id: 1, windowId: null}}, nextId: 2});
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			const result = listener(
-				{
-					action: "renameWorkspace",
-					workspaceId: 1,
-					newTitle: "X",
-				},
-				{},
-				sendResponse,
-			);
+			const result = listener({action: "renameWorkspace", workspaceId: 1, newTitle: "X"}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: true}));
+			const ws = browserMock.storage.local.set.mock.calls[0][0].workspaces;
+			expect(ws[1].customTitle).toBe("X");
 		});
 
-		test("routes updateOrder correctly", () => {
+		test("routes updateOrder and calls handleUpdateOrder", async () => {
+			browserMock.storage.local.get.mockResolvedValue({workspaces: {1: {id: 1}, 2: {id: 2}}, nextId: 3});
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			const result = listener(
-				{action: "updateOrder", newOrder: [1, 2]},
-				{},
-				sendResponse,
-			);
+			const result = listener({action: "updateOrder", newOrder: [2, 1]}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: true}));
+			const ws = browserMock.storage.local.set.mock.calls[0][0].workspaces;
+			expect(ws[2].order).toBe(0);
+			expect(ws[1].order).toBe(1);
 		});
 
-		test("routes exportWorkspaces correctly", () => {
+		test("routes exportWorkspaces and calls handleExportWorkspaces", async () => {
+			browserMock.storage.local.get.mockResolvedValue({workspaces: {1: {id: 1}}, nextId: 2});
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			const result = listener(
-				{action: "exportWorkspaces"},
-				{},
-				sendResponse,
-			);
+			const result = listener({action: "exportWorkspaces"}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: true, data: expect.objectContaining({workspaces: {1: {id: 1}}})}));
 		});
 
-		test("routes importWorkspaces correctly", () => {
+		test("routes importWorkspaces and calls handleImportWorkspace", async () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			const result = listener(
-				{action: "importWorkspaces", data: {}},
-				{},
-				sendResponse,
-			);
+			const result = listener({action: "importWorkspaces", data: {workspaces: {}, nextId: 1}}, {}, sendResponse);
 			expect(result).toBe(true);
+			await jest.advanceTimersByTimeAsync(0);
+			expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({success: true}));
+			expect(browserMock.storage.local.set).toHaveBeenCalled();
 		});
 
 		test("logs warning for unknown action", () => {
