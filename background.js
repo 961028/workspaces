@@ -116,7 +116,7 @@ async function processPendingUpdates() {
   for (const winId of pendingUpdates) {
     try {
       const tabs = await browser.tabs.query({ windowId: winId });
-      updateWorkspaceForWindow(workspaces, winId, tabs);
+      await updateWorkspaceForWindow(workspaces, winId, tabs);
       console.info("Updated workspace for window", winId);
     } catch (error) {
       console.error("Error updating workspace for window", winId, error);
