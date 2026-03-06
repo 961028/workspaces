@@ -421,8 +421,8 @@ class ContextMenu {
   }
 
   onRenameClick() {
-    this.hide();
     const wsid = parseInt(this.contextMenuEl?.dataset.wsid, 10);
+    this.hide();
     const newTitle = prompt("Enter new name for workspace:");
     if (newTitle && newTitle.trim() !== "") {
       sendMessage({ action: "renameWorkspace", workspaceId: wsid, newTitle: newTitle.trim() });
@@ -432,8 +432,8 @@ class ContextMenu {
   }
 
   onUnsaveClick() {
-    this.hide();
     const wsid = parseInt(this.contextMenuEl?.dataset.wsid, 10);
+    this.hide();
     sendMessage({ action: "unsaveWorkspace", workspaceId: wsid });
   }
 
