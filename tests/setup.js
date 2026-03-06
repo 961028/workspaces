@@ -38,11 +38,11 @@ function createBrowserMock() {
 		},
 		windows: {
 			getAll: jest.fn().mockResolvedValue([]),
-			create: jest.fn().mockResolvedValue({ id: 100, tabs: [] }),
+			create: jest.fn().mockResolvedValue({id: 100, tabs: []}),
 			update: jest.fn().mockResolvedValue({}),
-			get: jest.fn().mockResolvedValue({ id: 1 }),
-			getLastFocused: jest.fn().mockResolvedValue({ id: 1 }),
-			getCurrent: jest.fn().mockResolvedValue({ id: 1 }),
+			get: jest.fn().mockResolvedValue({id: 1}),
+			getLastFocused: jest.fn().mockResolvedValue({id: 1}),
+			getCurrent: jest.fn().mockResolvedValue({id: 1}),
 			onRemoved: createEventTarget(),
 			onFocusChanged: createEventTarget(),
 			WINDOW_ID_NONE: -1,
@@ -56,7 +56,7 @@ function createBrowserMock() {
 			onRemoved: createEventTarget(),
 		},
 		runtime: {
-			sendMessage: jest.fn().mockResolvedValue({ success: true }),
+			sendMessage: jest.fn().mockResolvedValue({success: true}),
 			onMessage: createEventTarget(),
 			onInstalled: createEventTarget(),
 			onStartup: createEventTarget(),
@@ -70,7 +70,7 @@ function createBrowserMock() {
 			onClicked: createEventTarget(),
 		},
 		theme: {
-			getCurrent: jest.fn().mockResolvedValue({ colors: {} }),
+			getCurrent: jest.fn().mockResolvedValue({colors: {}}),
 			onUpdated: createEventTarget(),
 		},
 	};
@@ -80,4 +80,4 @@ function installBrowserMock(mock) {
 	global.browser = mock;
 }
 
-module.exports = { createBrowserMock, installBrowserMock, createEventTarget };
+module.exports = {createBrowserMock, installBrowserMock, createEventTarget};

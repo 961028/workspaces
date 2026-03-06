@@ -7,7 +7,7 @@
 const fs = require("fs");
 const vm = require("vm");
 const path = require("path");
-const { createBrowserMock, installBrowserMock } = require("./setup");
+const {createBrowserMock, installBrowserMock} = require("./setup");
 
 // Helper: Execute background.js in a fresh context and return the context object.
 // `let` variables (pendingUpdates, updateTimer, windowLastActive) don't become
@@ -69,12 +69,12 @@ describe("background.js", () => {
 		test("returns defaults when storage is empty", async () => {
 			browserMock.storage.local.get.mockResolvedValue({});
 			const result = await ctx.getWorkspaces();
-			expect(result).toEqual({ workspaces: {}, nextId: 1 });
+			expect(result).toEqual({workspaces: {}, nextId: 1});
 		});
 
 		test("returns stored data when it exists", async () => {
 			const stored = {
-				workspaces: { 1: { id: 1, tabs: [] } },
+				workspaces: {1: {id: 1, tabs: []}},
 				nextId: 5,
 			};
 			browserMock.storage.local.get.mockResolvedValue(stored);
@@ -85,7 +85,7 @@ describe("background.js", () => {
 		test("returns defaults and logs error when storage rejects", async () => {
 			browserMock.storage.local.get.mockRejectedValue(new Error("fail"));
 			const result = await ctx.getWorkspaces();
-			expect(result).toEqual({ workspaces: {}, nextId: 1 });
+			expect(result).toEqual({workspaces: {}, nextId: 1});
 			expect(ctx.console.error).toHaveBeenCalled();
 		});
 	});
@@ -93,7 +93,7 @@ describe("background.js", () => {
 	// ─── 1.2 setWorkspaces ──────────────────────────────────────────
 	describe("setWorkspaces()", () => {
 		test("calls browser.storage.local.set with correct keys", async () => {
-			const ws = { 1: { id: 1 } };
+			const ws = {1: {id: 1}};
 			await ctx.setWorkspaces(ws, 2);
 			expect(browserMock.storage.local.set).toHaveBeenCalledWith({
 				workspaces: ws,
@@ -115,7 +115,7 @@ describe("background.js", () => {
 		test("clears windowId on matching workspace", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1, windowId: 10 },
+					1: {id: 1, windowId: 10},
 				},
 				nextId: 2,
 			});
@@ -127,7 +127,7 @@ describe("background.js", () => {
 		test("does nothing when no workspace matches", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1, windowId: 10 },
+					1: {id: 1, windowId: 10},
 				},
 				nextId: 2,
 			});
@@ -138,8 +138,8 @@ describe("background.js", () => {
 		test("only clears the matching workspace, leaves others intact", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1, windowId: 10 },
-					2: { id: 2, windowId: 20 },
+					1: {id: 1, windowId: 10},
+					2: {id: 2, windowId: 20},
 				},
 				nextId: 3,
 			});
@@ -151,7 +151,7 @@ describe("background.js", () => {
 
 		test("persists changes via setWorkspaces", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
-				workspaces: { 1: { id: 1, windowId: 10 } },
+				workspaces: {1: {id: 1, windowId: 10}},
 				nextId: 2,
 			});
 			await ctx.unsetWindowIdForClosedWorkspaces(10);
@@ -171,9 +171,9 @@ describe("background.js", () => {
 				},
 			]);
 			const tabs = [
-				{ groupId: 1, index: 0 },
-				{ groupId: 1, index: 1 },
-				{ groupId: -1, index: 2 },
+				{groupId: 1, index: 0},
+				{groupId: 1, index: 1},
+				{groupId: -1, index: 2},
 			];
 			const result = await ctx.queryGroupRanges(10, tabs);
 			expect(result).toEqual([
@@ -190,7 +190,7 @@ describe("background.js", () => {
 		test("returns empty array when no tab groups exist", async () => {
 			browserMock.tabGroups.query.mockResolvedValue([]);
 			const result = await ctx.queryGroupRanges(10, [
-				{ groupId: -1, index: 0 },
+				{groupId: -1, index: 0},
 			]);
 			expect(result).toEqual([]);
 		});
@@ -206,15 +206,15 @@ describe("background.js", () => {
 
 		test("handles multiple non-contiguous groups", async () => {
 			browserMock.tabGroups.query.mockResolvedValue([
-				{ id: 1, title: "A", color: "red", collapsed: false },
-				{ id: 2, title: "B", color: "green", collapsed: true },
+				{id: 1, title: "A", color: "red", collapsed: false},
+				{id: 2, title: "B", color: "green", collapsed: true},
 			]);
 			const tabs = [
-				{ groupId: 1, index: 0 },
-				{ groupId: 1, index: 1 },
-				{ groupId: -1, index: 2 },
-				{ groupId: 2, index: 3 },
-				{ groupId: 2, index: 4 },
+				{groupId: 1, index: 0},
+				{groupId: 1, index: 1},
+				{groupId: -1, index: 2},
+				{groupId: 2, index: 3},
+				{groupId: 2, index: 4},
 			];
 			const result = await ctx.queryGroupRanges(10, tabs);
 			expect(result).toHaveLength(2);
@@ -372,13 +372,13 @@ describe("background.js", () => {
 			ctx.__getPendingUpdates().add(20);
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1, windowId: 10, tabs: [] },
-					2: { id: 2, windowId: 20, tabs: [] },
+					1: {id: 1, windowId: 10, tabs: []},
+					2: {id: 2, windowId: 20, tabs: []},
 				},
 				nextId: 3,
 			});
 			browserMock.tabs.query.mockResolvedValue([
-				{ url: "https://a.com", title: "A", active: true, index: 0 },
+				{url: "https://a.com", title: "A", active: true, index: 0},
 			]);
 			browserMock.tabGroups.query.mockResolvedValue([]);
 			await ctx.processPendingUpdates();
@@ -389,12 +389,12 @@ describe("background.js", () => {
 			ctx.__getPendingUpdates().add(999);
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1, windowId: 10, tabs: [] },
+					1: {id: 1, windowId: 10, tabs: []},
 				},
 				nextId: 2,
 			});
 			browserMock.tabs.query.mockResolvedValue([
-				{ url: "https://a.com", title: "A", active: true, index: 0 },
+				{url: "https://a.com", title: "A", active: true, index: 0},
 			]);
 			browserMock.tabGroups.query.mockResolvedValue([]);
 			await ctx.processPendingUpdates();
@@ -408,7 +408,7 @@ describe("background.js", () => {
 		test("handles errors from tabs.query gracefully", async () => {
 			ctx.__getPendingUpdates().add(10);
 			browserMock.storage.local.get.mockResolvedValue({
-				workspaces: { 1: { id: 1, windowId: 10, tabs: [] } },
+				workspaces: {1: {id: 1, windowId: 10, tabs: []}},
 				nextId: 2,
 			});
 			browserMock.tabs.query.mockRejectedValue(new Error("tabs fail"));
@@ -430,7 +430,7 @@ describe("background.js", () => {
 	describe("updateWorkspaceForWindow()", () => {
 		test("updates workspace tabs and title", async () => {
 			const workspaces = {
-				1: { id: 1, windowId: 10, tabs: [], title: "" },
+				1: {id: 1, windowId: 10, tabs: [], title: ""},
 			};
 			const tabs = [
 				{
@@ -457,10 +457,10 @@ describe("background.js", () => {
 
 		test("updates groupRanges via queryGroupRanges", async () => {
 			const workspaces = {
-				1: { id: 1, windowId: 10, tabs: [], groupRanges: [] },
+				1: {id: 1, windowId: 10, tabs: [], groupRanges: []},
 			};
 			browserMock.tabGroups.query.mockResolvedValue([
-				{ id: 1, title: "G", color: "blue", collapsed: false },
+				{id: 1, title: "G", color: "blue", collapsed: false},
 			]);
 			const tabs = [
 				{
@@ -500,7 +500,7 @@ describe("background.js", () => {
 
 		test("returns early on empty tabs", async () => {
 			const workspaces = {
-				1: { id: 1, windowId: 10, tabs: ["old"] },
+				1: {id: 1, windowId: 10, tabs: ["old"]},
 			};
 			await ctx.updateWorkspaceForWindow(workspaces, 10, []);
 			expect(workspaces[1].tabs).toEqual(["old"]);
@@ -512,7 +512,7 @@ describe("background.js", () => {
 		test("returns saved workspaces and unsaved windows", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1, windowId: 10, tabs: ["https://a.com"] },
+					1: {id: 1, windowId: 10, tabs: ["https://a.com"]},
 				},
 				nextId: 2,
 			});
@@ -548,7 +548,7 @@ describe("background.js", () => {
 		});
 
 		test("sorts unsaved by most recent activity", async () => {
-			ctx.__setWindowLastActive({ 20: 100, 30: 200 });
+			ctx.__setWindowLastActive({20: 100, 30: 200});
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {},
 				nextId: 1,
@@ -556,11 +556,11 @@ describe("background.js", () => {
 			browserMock.windows.getAll.mockResolvedValue([
 				{
 					id: 20,
-					tabs: [{ active: true, title: "Old" }],
+					tabs: [{active: true, title: "Old"}],
 				},
 				{
 					id: 30,
-					tabs: [{ active: true, title: "New" }],
+					tabs: [{active: true, title: "New"}],
 				},
 			]);
 			const sendResponse = jest.fn();
@@ -644,7 +644,7 @@ describe("background.js", () => {
 				},
 			]);
 			browserMock.tabGroups.query.mockResolvedValue([
-				{ id: 1, title: "G", color: "red", collapsed: false },
+				{id: 1, title: "G", color: "red", collapsed: false},
 			]);
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {},
@@ -690,9 +690,9 @@ describe("background.js", () => {
 				},
 				nextId: 2,
 			});
-			browserMock.windows.create.mockResolvedValue({ id: 100 });
+			browserMock.windows.create.mockResolvedValue({id: 100});
 			browserMock.tabs.query.mockResolvedValue([
-				{ id: 1, url: "https://a.com", index: 0 },
+				{id: 1, url: "https://a.com", index: 0},
 			]);
 			const sendResponse = jest.fn();
 			const promise = ctx.handleOpenWorkspace(1, sendResponse);
@@ -724,10 +724,10 @@ describe("background.js", () => {
 				},
 				nextId: 2,
 			});
-			browserMock.windows.create.mockResolvedValue({ id: 100 });
+			browserMock.windows.create.mockResolvedValue({id: 100});
 			browserMock.tabs.query.mockResolvedValue([
-				{ id: 1, url: "https://good.com", index: 0 },
-				{ id: 2, url: "about:blank", index: 1 },
+				{id: 1, url: "https://good.com", index: 0},
+				{id: 2, url: "about:blank", index: 1},
 			]);
 			const sendResponse = jest.fn();
 			const promise = ctx.handleOpenWorkspace(1, sendResponse);
@@ -753,9 +753,9 @@ describe("background.js", () => {
 			browserMock.windows.update.mockRejectedValueOnce(
 				new Error("window gone"),
 			);
-			browserMock.windows.create.mockResolvedValue({ id: 100 });
+			browserMock.windows.create.mockResolvedValue({id: 100});
 			browserMock.tabs.query.mockResolvedValue([
-				{ id: 1, url: "https://a.com", index: 0 },
+				{id: 1, url: "https://a.com", index: 0},
 			]);
 			const sendResponse = jest.fn();
 			const promise = ctx.handleOpenWorkspace(1, sendResponse);
@@ -770,8 +770,8 @@ describe("background.js", () => {
 		test("removes workspace from storage", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1 },
-					2: { id: 2 },
+					1: {id: 1},
+					2: {id: 2},
 				},
 				nextId: 3,
 			});
@@ -784,7 +784,7 @@ describe("background.js", () => {
 
 		test("sends success response", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
-				workspaces: { 1: { id: 1 } },
+				workspaces: {1: {id: 1}},
 				nextId: 2,
 			});
 			const sendResponse = jest.fn();
@@ -807,7 +807,7 @@ describe("background.js", () => {
 	describe("handleRenameWorkspace()", () => {
 		test("sets customTitle on workspace", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
-				workspaces: { 1: { id: 1, windowId: null } },
+				workspaces: {1: {id: 1, windowId: null}},
 				nextId: 2,
 			});
 			const sendResponse = jest.fn();
@@ -819,7 +819,7 @@ describe("background.js", () => {
 
 		test("updates window title preface when workspace is open", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
-				workspaces: { 1: { id: 1, windowId: 10 } },
+				workspaces: {1: {id: 1, windowId: 10}},
 				nextId: 2,
 			});
 			const sendResponse = jest.fn();
@@ -841,7 +841,7 @@ describe("background.js", () => {
 
 		test("handles empty string title", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
-				workspaces: { 1: { id: 1, windowId: null } },
+				workspaces: {1: {id: 1, windowId: null}},
 				nextId: 2,
 			});
 			const sendResponse = jest.fn();
@@ -857,9 +857,9 @@ describe("background.js", () => {
 		test("assigns order property based on array index", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1 },
-					2: { id: 2 },
-					3: { id: 3 },
+					1: {id: 1},
+					2: {id: 2},
+					3: {id: 3},
 				},
 				nextId: 4,
 			});
@@ -875,9 +875,9 @@ describe("background.js", () => {
 		test("assigns sequential order to workspaces not in newOrder", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
 				workspaces: {
-					1: { id: 1 },
-					2: { id: 2 },
-					3: { id: 3 },
+					1: {id: 1},
+					2: {id: 2},
+					3: {id: 3},
 				},
 				nextId: 4,
 			});
@@ -927,14 +927,14 @@ describe("background.js", () => {
 	describe("handleExportWorkspaces()", () => {
 		test("returns workspaces and nextId", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
-				workspaces: { 1: { id: 1 } },
+				workspaces: {1: {id: 1}},
 				nextId: 2,
 			});
 			const sendResponse = jest.fn();
 			await ctx.handleExportWorkspaces(sendResponse);
 			const resp = sendResponse.mock.calls[0][0];
 			expect(resp.success).toBe(true);
-			expect(resp.data.workspaces).toEqual({ 1: { id: 1 } });
+			expect(resp.data.workspaces).toEqual({1: {id: 1}});
 			expect(resp.data.nextId).toBe(2);
 		});
 
@@ -990,28 +990,28 @@ describe("background.js", () => {
 		});
 
 		test("rejects missing workspaces key", async () => {
-			const msg = { data: { nextId: 1 } };
+			const msg = {data: {nextId: 1}};
 			const sendResponse = jest.fn();
 			await ctx.handleImportWorkspace(msg, sendResponse);
 			expect(sendResponse.mock.calls[0][0].success).toBe(false);
 		});
 
 		test("rejects missing nextId", async () => {
-			const msg = { data: { workspaces: {} } };
+			const msg = {data: {workspaces: {}}};
 			const sendResponse = jest.fn();
 			await ctx.handleImportWorkspace(msg, sendResponse);
 			expect(sendResponse.mock.calls[0][0].success).toBe(false);
 		});
 
 		test("rejects invalid nextId", async () => {
-			const msg = { data: { workspaces: {}, nextId: -1 } };
+			const msg = {data: {workspaces: {}, nextId: -1}};
 			const sendResponse = jest.fn();
 			await ctx.handleImportWorkspace(msg, sendResponse);
 			expect(sendResponse.mock.calls[0][0].success).toBe(false);
 		});
 
 		test("rejects null data", async () => {
-			const msg = { data: null };
+			const msg = {data: null};
 			const sendResponse = jest.fn();
 			await ctx.handleImportWorkspace(msg, sendResponse);
 			expect(sendResponse.mock.calls[0][0].success).toBe(false);
@@ -1037,7 +1037,7 @@ describe("background.js", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
 			listener(
-				{ action: "openWorkspace", workspaceId: 1 },
+				{action: "openWorkspace", workspaceId: 1},
 				{},
 				sendResponse,
 			);
@@ -1053,7 +1053,7 @@ describe("background.js", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
 			listener(
-				{ action: "unsaveWorkspace", workspaceId: 1 },
+				{action: "unsaveWorkspace", workspaceId: 1},
 				{},
 				sendResponse,
 			);
@@ -1077,7 +1077,7 @@ describe("background.js", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
 			listener(
-				{ action: "updateOrder", newOrder: [1, 2] },
+				{action: "updateOrder", newOrder: [1, 2]},
 				{},
 				sendResponse,
 			);
@@ -1098,7 +1098,7 @@ describe("background.js", () => {
 		test("logs warning for unknown action", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener({ action: "bogus" }, {}, sendResponse);
+			listener({action: "bogus"}, {}, sendResponse);
 			expect(ctx.console.warn).toHaveBeenCalled();
 			expect(sendResponse.mock.calls[0][0].success).toBe(false);
 		});
@@ -1124,33 +1124,33 @@ describe("background.js", () => {
 
 		test("onCreated schedules update with correct windowId", () => {
 			const listener = browserMock.tabs.onCreated._listeners[0];
-			listener({ windowId: 42 });
+			listener({windowId: 42});
 			expect(ctx.__getPendingUpdates().has(42)).toBe(true);
 		});
 
 		test("onRemoved schedules update with correct windowId", () => {
 			const listener = browserMock.tabs.onRemoved._listeners[0];
-			listener(1, { windowId: 42 });
+			listener(1, {windowId: 42});
 			expect(ctx.__getPendingUpdates().has(42)).toBe(true);
 		});
 
 		test("onUpdated only schedules when title changes", () => {
 			const listener = browserMock.tabs.onUpdated._listeners[0];
-			listener(1, {}, { windowId: 42 });
+			listener(1, {}, {windowId: 42});
 			expect(ctx.__getPendingUpdates().has(42)).toBe(false);
-			listener(1, { title: "New" }, { windowId: 42 });
+			listener(1, {title: "New"}, {windowId: 42});
 			expect(ctx.__getPendingUpdates().has(42)).toBe(true);
 		});
 
 		test("onAttached schedules for newWindowId", () => {
 			const listener = browserMock.tabs.onAttached._listeners[0];
-			listener(1, { newWindowId: 55 });
+			listener(1, {newWindowId: 55});
 			expect(ctx.__getPendingUpdates().has(55)).toBe(true);
 		});
 
 		test("onDetached schedules for oldWindowId", () => {
 			const listener = browserMock.tabs.onDetached._listeners[0];
-			listener(1, { oldWindowId: 66 });
+			listener(1, {oldWindowId: 66});
 			expect(ctx.__getPendingUpdates().has(66)).toBe(true);
 		});
 	});
@@ -1159,7 +1159,7 @@ describe("background.js", () => {
 	describe("registerWindowListeners()", () => {
 		test("onRemoved calls unsetWindowIdForClosedWorkspaces", async () => {
 			browserMock.storage.local.get.mockResolvedValue({
-				workspaces: { 1: { id: 1, windowId: 42 } },
+				workspaces: {1: {id: 1, windowId: 42}},
 				nextId: 2,
 			});
 			const listener = browserMock.windows.onRemoved._listeners[0];
@@ -1177,7 +1177,7 @@ describe("background.js", () => {
 
 		test("onFocusChanged ignores WINDOW_ID_NONE (negative)", () => {
 			const listener = browserMock.windows.onFocusChanged._listeners[0];
-			const before = { ...ctx.__getWindowLastActive() };
+			const before = {...ctx.__getWindowLastActive()};
 			listener(-1);
 			expect(ctx.__getWindowLastActive()[-1]).toBeUndefined();
 		});
@@ -1209,7 +1209,7 @@ describe("background.js", () => {
 
 		test("onCreated schedules update", () => {
 			const listener = browserMock.tabGroups.onCreated._listeners[0];
-			listener({ windowId: 77 });
+			listener({windowId: 77});
 			expect(ctx.__getPendingUpdates().has(77)).toBe(true);
 		});
 	});
@@ -1219,7 +1219,7 @@ describe("background.js", () => {
 		test("creates context menu with provided title", () => {
 			ctx.createMainMenu("Custom Title");
 			expect(browserMock.contextMenus.create).toHaveBeenCalledWith(
-				expect.objectContaining({ title: "Custom Title" }),
+				expect.objectContaining({title: "Custom Title"}),
 			);
 		});
 
@@ -1237,7 +1237,7 @@ describe("background.js", () => {
 	describe("setWindowTitlePrefaceForWorkspace()", () => {
 		test("sets titlePreface when customTitle exists", async () => {
 			await ctx.setWindowTitlePrefaceForWorkspace(
-				{ id: 1, customTitle: "My Workspace" },
+				{id: 1, customTitle: "My Workspace"},
 				10,
 			);
 			expect(browserMock.windows.update).toHaveBeenCalledWith(10, {
@@ -1247,14 +1247,14 @@ describe("background.js", () => {
 
 		test("does not set titlePreface when customTitle is empty", async () => {
 			await ctx.setWindowTitlePrefaceForWorkspace(
-				{ id: 1, customTitle: "" },
+				{id: 1, customTitle: ""},
 				10,
 			);
 			expect(browserMock.windows.update).not.toHaveBeenCalled();
 		});
 
 		test("does not set titlePreface when customTitle is missing", async () => {
-			await ctx.setWindowTitlePrefaceForWorkspace({ id: 1 }, 10);
+			await ctx.setWindowTitlePrefaceForWorkspace({id: 1}, 10);
 			expect(browserMock.windows.update).not.toHaveBeenCalled();
 		});
 
@@ -1263,7 +1263,7 @@ describe("background.js", () => {
 				new Error("window gone"),
 			);
 			await ctx.setWindowTitlePrefaceForWorkspace(
-				{ id: 1, customTitle: "Ws" },
+				{id: 1, customTitle: "Ws"},
 				10,
 			);
 			expect(ctx.console.warn).toHaveBeenCalled();

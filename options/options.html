@@ -1,25 +1,46 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark light">
-  <title>Workspace Manager Options</title>
-  <link rel="stylesheet" href="../common.css">
-    <link rel="stylesheet" href="options.css">
-</head>
-<body>
-  <h2>Backup & Restore</h2>
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<meta
+			name="color-scheme"
+			content="dark light"
+		/>
+		<title>Workspace Manager Options</title>
+		<link
+			rel="stylesheet"
+			href="../common.css"
+		/>
+		<link
+			rel="stylesheet"
+			href="options.css"
+		/>
+	</head>
+	<body>
+		<h2>Backup & Restore</h2>
 
-  <div id="export-import-controls">
-    <button id="export-btn">Backup Workspaces</button>
-    <button id="import-btn">Import Workspaces</button>
-    <input type="file" id="import-file" accept="application/json" style="display:none">
-    <p>Please be aware that importing will overwrite your current workspaces.<br>Backup your current workspaces before importing.</p>
-  </div>
+		<div id="export-import-controls">
+			<button id="export-btn">Backup Workspaces</button>
+			<button id="import-btn">Import Workspaces</button>
+			<input
+				type="file"
+				id="import-file"
+				accept="application/json"
+				style="display: none"
+			/>
+			<p>
+				Please be aware that importing will overwrite your current
+				workspaces.<br />Backup your current workspaces before
+				importing.
+			</p>
+		</div>
 
-  <div id="status"></div>
+		<div id="status"></div>
 
-  <script src="options.js"></script>
-</body>
+		<script src="options.js"></script>
+	</body>
 </html>

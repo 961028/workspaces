@@ -6,7 +6,7 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { createBrowserMock } = require("./setup");
+const {createBrowserMock} = require("./setup");
 
 function getPopupHtml() {
 	return fs.readFileSync(
@@ -120,7 +120,7 @@ describe("popup.js", () => {
 
 		test("setInitialStyle calls browser.theme.getCurrent", async () => {
 			browserMock.theme.getCurrent.mockResolvedValue({
-				colors: { popup: "#fff", popup_text: "#000" },
+				colors: {popup: "#fff", popup_text: "#000"},
 			});
 			await themeManager.setInitialStyle();
 			expect(browserMock.theme.getCurrent).toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe("popup.js", () => {
 
 		test("applyThemeStyle sets CSS variables", () => {
 			themeManager.applyThemeStyle({
-				colors: { popup: "#123456", popup_text: "#abcdef" },
+				colors: {popup: "#123456", popup_text: "#abcdef"},
 			});
 			const style = document.documentElement.style;
 			expect(style.getPropertyValue("--Menu")).toBe("#123456");
@@ -157,7 +157,7 @@ describe("popup.js", () => {
 		beforeEach(() => {
 			loadPopupEnv(browserMock);
 			statusBar = new StatusBar("status");
-			contextMenu = new ContextMenu({ statusBar });
+			contextMenu = new ContextMenu({statusBar});
 		});
 
 		test("create() adds menu element to DOM with Rename and Unsave", () => {
@@ -172,7 +172,7 @@ describe("popup.js", () => {
 		test("show() displays the menu and stores workspace ID", () => {
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			const el = document.getElementById("context-menu");
@@ -183,7 +183,7 @@ describe("popup.js", () => {
 		test("hide() hides the menu and clears workspace ID", () => {
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			contextMenu.hide();
@@ -195,7 +195,7 @@ describe("popup.js", () => {
 		test("isOpenForWorkspace returns true when menu matches", () => {
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			expect(contextMenu.isOpenForWorkspace(42)).toBe(true);
@@ -209,7 +209,7 @@ describe("popup.js", () => {
 		test("isOpenForWorkspace returns false for different ID", () => {
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			expect(contextMenu.isOpenForWorkspace(99)).toBe(false);
@@ -218,7 +218,7 @@ describe("popup.js", () => {
 		test("isOpenForOtherWorkspace returns true for different ID", () => {
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			expect(contextMenu.isOpenForOtherWorkspace(99)).toBe(true);
@@ -232,7 +232,7 @@ describe("popup.js", () => {
 		test("isOpenForOtherWorkspace returns false for same ID", () => {
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			expect(contextMenu.isOpenForOtherWorkspace(42)).toBe(false);
@@ -243,7 +243,7 @@ describe("popup.js", () => {
 			contextMenu.setSendMessageHandler(sendMsg);
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			global.prompt.mockReturnValue("New Name");
@@ -260,7 +260,7 @@ describe("popup.js", () => {
 			contextMenu.setSendMessageHandler(sendMsg);
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			global.prompt.mockReturnValue(null);
@@ -273,7 +273,7 @@ describe("popup.js", () => {
 			contextMenu.setSendMessageHandler(sendMsg);
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			global.prompt.mockReturnValue("   ");
@@ -286,7 +286,7 @@ describe("popup.js", () => {
 			contextMenu.setSendMessageHandler(sendMsg);
 			contextMenu.create();
 			contextMenu.show(
-				{ clientX: 50, clientY: 50, preventDefault: () => {} },
+				{clientX: 50, clientY: 50, preventDefault: () => {}},
 				42,
 			);
 			contextMenu.onUnsaveClick();
@@ -315,7 +315,7 @@ describe("popup.js", () => {
 				writable: true,
 			});
 			contextMenu.show(
-				{ clientX: 250, clientY: 180, preventDefault: () => {} },
+				{clientX: 250, clientY: 180, preventDefault: () => {}},
 				1,
 			);
 			const left = parseInt(contextMenu.contextMenuEl.style.left, 10);
@@ -490,7 +490,7 @@ describe("popup.js", () => {
 			const li = document.createElement("li");
 			li.className = "js-item is-idle";
 			const onClick = jest.fn();
-			dnd.addListItemEvents(li, { onClick });
+			dnd.addListItemEvents(li, {onClick});
 			li.click();
 			expect(onClick).toHaveBeenCalled();
 		});
@@ -510,7 +510,7 @@ describe("popup.js", () => {
 		test("addListItemEvents makes item draggable when onDragStart provided", () => {
 			const li = document.createElement("li");
 			const onDragStart = jest.fn();
-			dnd.addListItemEvents(li, { onDragStart });
+			dnd.addListItemEvents(li, {onDragStart});
 			expect(li.getAttribute("draggable")).toBe("true");
 		});
 
@@ -567,7 +567,7 @@ describe("popup.js", () => {
 			loadPopupEnv(browserMock);
 			statusBar = new StatusBar("status");
 			dndManager = new DragAndDropManager();
-			contextMenu = new ContextMenu({ statusBar });
+			contextMenu = new ContextMenu({statusBar});
 			contextMenu.create();
 			workspaceList = new WorkspaceList({
 				dragAndDropManager: dndManager,
@@ -580,8 +580,8 @@ describe("popup.js", () => {
 		describe("updateSavedList()", () => {
 			test("renders one item per saved workspace", () => {
 				const saved = [
-					{ id: 1, title: "WS1", tabs: ["a"], order: 0 },
-					{ id: 2, title: "WS2", tabs: ["b"], order: 1 },
+					{id: 1, title: "WS1", tabs: ["a"], order: 0},
+					{id: 2, title: "WS2", tabs: ["b"], order: 1},
 				];
 				workspaceList.updateSavedList(saved, 0);
 				const items = document.querySelectorAll(
@@ -630,7 +630,7 @@ describe("popup.js", () => {
 		describe("createSavedListItem()", () => {
 			test("creates li with correct data-wsid", () => {
 				const li = workspaceList.createSavedListItem(
-					{ id: 42, title: "Test", tabs: ["a", "b"] },
+					{id: 42, title: "Test", tabs: ["a", "b"]},
 					0,
 				);
 				expect(li.dataset.wsid).toBe("42");
@@ -638,7 +638,7 @@ describe("popup.js", () => {
 
 			test("shows workspace title", () => {
 				const li = workspaceList.createSavedListItem(
-					{ id: 1, title: "My WS", tabs: [] },
+					{id: 1, title: "My WS", tabs: []},
 					0,
 				);
 				expect(li.querySelector(".label").textContent).toBe("My WS");
@@ -646,7 +646,7 @@ describe("popup.js", () => {
 
 			test("shows tab count", () => {
 				const li = workspaceList.createSavedListItem(
-					{ id: 1, title: "T", tabs: ["a", "b", "c"] },
+					{id: 1, title: "T", tabs: ["a", "b", "c"]},
 					0,
 				);
 				expect(li.querySelector(".subtitle").textContent).toBe(
@@ -656,7 +656,7 @@ describe("popup.js", () => {
 
 			test("shows singular tab count", () => {
 				const li = workspaceList.createSavedListItem(
-					{ id: 1, title: "T", tabs: ["a"] },
+					{id: 1, title: "T", tabs: ["a"]},
 					0,
 				);
 				expect(li.querySelector(".subtitle").textContent).toBe("1 Tab");
@@ -664,7 +664,7 @@ describe("popup.js", () => {
 
 			test("fallback title when workspace has no title", () => {
 				const li = workspaceList.createSavedListItem(
-					{ id: 1, title: "", tabs: [] },
+					{id: 1, title: "", tabs: []},
 					0,
 				);
 				expect(li.querySelector(".label").textContent).toBe(
@@ -674,7 +674,7 @@ describe("popup.js", () => {
 
 			test("has edit button with correct data-wsid", () => {
 				const li = workspaceList.createSavedListItem(
-					{ id: 7, title: "T", tabs: [] },
+					{id: 7, title: "T", tabs: []},
 					0,
 				);
 				const btn = li.querySelector(".edit-btn");
@@ -695,12 +695,12 @@ describe("popup.js", () => {
 					{
 						windowId: 10,
 						title: "Win1",
-						tabs: [{ url: "a" }],
+						tabs: [{url: "a"}],
 					},
 					{
 						windowId: 20,
 						title: "Win2",
-						tabs: [{ url: "b" }],
+						tabs: [{url: "b"}],
 					},
 				];
 				workspaceList.updateUnsavedList(unsaved, 0);
@@ -726,7 +726,7 @@ describe("popup.js", () => {
 			test("removes <hr> separator when unsaved is empty", () => {
 				// First add
 				workspaceList.updateUnsavedList(
-					[{ windowId: 10, title: "W", tabs: [] }],
+					[{windowId: 10, title: "W", tabs: []}],
 					0,
 				);
 				// Then clear
@@ -739,7 +739,7 @@ describe("popup.js", () => {
 		describe("createUnsavedListItem()", () => {
 			test("creates li with correct data-wid", () => {
 				const li = workspaceList.createUnsavedListItem(
-					{ windowId: 55, title: "Win", tabs: [] },
+					{windowId: 55, title: "Win", tabs: []},
 					0,
 				);
 				expect(li.dataset.wid).toBe("55");
@@ -747,7 +747,7 @@ describe("popup.js", () => {
 
 			test("shows window title", () => {
 				const li = workspaceList.createUnsavedListItem(
-					{ windowId: 1, title: "My Win", tabs: [] },
+					{windowId: 1, title: "My Win", tabs: []},
 					0,
 				);
 				expect(li.querySelector(".label").textContent).toBe("My Win");
@@ -755,7 +755,7 @@ describe("popup.js", () => {
 
 			test("highlights current window", () => {
 				const li = workspaceList.createUnsavedListItem(
-					{ windowId: 10, title: "W", tabs: [] },
+					{windowId: 10, title: "W", tabs: []},
 					10,
 				);
 				expect(li.classList.contains("highlight")).toBe(true);
@@ -763,7 +763,7 @@ describe("popup.js", () => {
 
 			test("has save button", () => {
 				const li = workspaceList.createUnsavedListItem(
-					{ windowId: 10, title: "W", tabs: [] },
+					{windowId: 10, title: "W", tabs: []},
 					0,
 				);
 				expect(li.querySelector(".save-btn")).toBeTruthy();
@@ -843,7 +843,7 @@ describe("popup.js", () => {
 				unsaved: [],
 			});
 			browserMock.theme.getCurrent.mockResolvedValue({
-				colors: { popup: "#fff", popup_text: "#000" },
+				colors: {popup: "#fff", popup_text: "#000"},
 			});
 			loadPopupEnv(browserMock);
 			app = createPopupApp();
@@ -864,11 +864,11 @@ describe("popup.js", () => {
 			await app.init();
 			const menu = document.getElementById("context-menu");
 			app.contextMenu.show(
-				{ clientX: 10, clientY: 10, preventDefault: () => {} },
+				{clientX: 10, clientY: 10, preventDefault: () => {}},
 				1,
 			);
 			expect(menu.style.display).toBe("block");
-			document.dispatchEvent(new Event("click", { bubbles: true }));
+			document.dispatchEvent(new Event("click", {bubbles: true}));
 			expect(menu.style.display).toBe("none");
 		});
 
@@ -898,7 +898,7 @@ describe("popup.js", () => {
 				message: "done",
 			});
 			const loadSpy = jest.spyOn(app, "loadState").mockResolvedValue();
-			await app.sendMessage({ action: "saveWindow", windowId: 10 });
+			await app.sendMessage({action: "saveWindow", windowId: 10});
 			expect(browserMock.runtime.sendMessage).toHaveBeenCalledWith({
 				action: "saveWindow",
 				windowId: 10,
@@ -912,7 +912,7 @@ describe("popup.js", () => {
 				error: "fail",
 			});
 			jest.spyOn(app, "loadState").mockResolvedValue();
-			await app.sendMessage({ action: "bogus" });
+			await app.sendMessage({action: "bogus"});
 			const status = document.getElementById("status");
 			expect(status.className).toBe("error");
 		});

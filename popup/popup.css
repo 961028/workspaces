@@ -2,55 +2,55 @@
    Base Styles
    ========================= */
 body {
-  background-color: var(--popup-000);
-  color: var(--popup-1000);
-  font-family: sans-serif;
-  font-size: var(--font-size-medium);
-  width: 400px;
+	background-color: var(--popup-000);
+	color: var(--popup-1000);
+	font-family: sans-serif;
+	font-size: var(--font-size-medium);
+	width: 400px;
 }
 
 hr {
-  border: none;
-  border-top: 1px solid var(--popup-200);
-  margin: var(--space-8) 0;
+	border: none;
+	border-top: 1px solid var(--popup-200);
+	margin: var(--space-8) 0;
 }
 
 /* =========================
    List Styles
    ========================= */
 ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+	list-style: none;
+	margin: 0;
+	padding: 0;
 }
 
 li {
-  align-items: center;
-  border-radius: var(--border-radius-medium);
-  display: flex;
-  margin: var(--space-8) 0;
-  padding: var(--space-8);
+	align-items: center;
+	border-radius: var(--border-radius-medium);
+	display: flex;
+	margin: var(--space-8) 0;
+	padding: var(--space-8);
 }
 
 li:hover {
-  background-color: var(--popup-300);
-  box-sizing: border-box;
+	background-color: var(--popup-300);
+	box-sizing: border-box;
 }
 
 li.highlight {
-  background-color: var(--popup-400);
-  box-shadow: var(--shadow);
+	background-color: var(--popup-400);
+	box-shadow: var(--shadow);
 }
 
 .saved-item {
-  box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 .favicon {
-  height: var(--space-24);
-  width: var(--space-24);
-  margin-right: var(--space-12);
-  object-fit: contain;
+	height: var(--space-24);
+	width: var(--space-24);
+	margin-right: var(--space-12);
+	object-fit: contain;
 }
 
 /* =========================
@@ -58,83 +58,83 @@ li.highlight {
    ========================= */
 
 .js-item {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .js-item.is-draggable {
-  transition: none !important;
-  z-index: 10;
-  position: relative;
+	transition: none !important;
+	z-index: 10;
+	position: relative;
 }
 
 /* =========================
    Label Styles
    ========================= */
 .label {
-  flex: 1;
-  margin-right: var(--space-8);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+	flex: 1;
+	margin-right: var(--space-8);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .subtitle {
-  font-size: var(--font-size-small);
-  color: var(--popup-600);
-  margin-right: var(--space-8);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+	font-size: var(--font-size-small);
+	color: var(--popup-600);
+	margin-right: var(--space-8);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .title-stack {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0; /* Prevents overflow issues */
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 0; /* Prevents overflow issues */
 }
 
 /* =========================
    Button Styles
    ========================= */
 button {
-  font-size: var(--font-size-small);
-  color: var(--popup-1000);
-  background-color: var(--overlay-100);
-  border: none;
-  border-radius: var(--border-radius-small);
-  cursor: pointer;
-  padding: var(--space-8) var(--space-12);
+	font-size: var(--font-size-small);
+	color: var(--popup-1000);
+	background-color: var(--overlay-100);
+	border: none;
+	border-radius: var(--border-radius-small);
+	cursor: pointer;
+	padding: var(--space-8) var(--space-12);
 }
 
 button:hover {
-  background-color: var(--overlay-300);
+	background-color: var(--overlay-300);
 }
 
 /* =========================
    Status Messages
    ========================= */
 #status {
-  font-weight: bold;
-  margin-top: var(--space-8);
-  text-align: center;
+	font-weight: bold;
+	margin-top: var(--space-8);
+	text-align: center;
 }
 
 .success {
-  display: none;
-  border: none;
-  border-radius: var(--border-radius-medium);
-  color: var(--popup-900);
-  font-size: var(--font-size-small);
-  padding: var(--space-8);
+	display: none;
+	border: none;
+	border-radius: var(--border-radius-medium);
+	color: var(--popup-900);
+	font-size: var(--font-size-small);
+	padding: var(--space-8);
 }
 
 .error {
-  border: none;
-  border-radius: var(--border-radius-medium);
-  color: var(--popup-900);
-  font-size: var(--font-size-small);
-  padding: var(--space-8);
+	border: none;
+	border-radius: var(--border-radius-medium);
+	color: var(--popup-900);
+	font-size: var(--font-size-small);
+	padding: var(--space-8);
 }
 
 /* =========================
@@ -142,10 +142,10 @@ button:hover {
    ========================= */
 
 .empty-message {
-  height: var(--space-44);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--popup-700);
+	height: var(--space-44);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	color: var(--popup-700);
 }

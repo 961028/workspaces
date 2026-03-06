@@ -6,7 +6,7 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { createBrowserMock } = require("./setup");
+const {createBrowserMock} = require("./setup");
 
 function loadOptionsPage(browserMock) {
 	// Set up the DOM from options.html
