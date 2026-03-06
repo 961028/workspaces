@@ -500,6 +500,7 @@ async function handleImportWorkspace(msg, sendResponse) {
 			typeof importedData !== "object" ||
 			!importedData.workspaces ||
 			typeof importedData.workspaces !== "object" ||
+			Array.isArray(importedData.workspaces) ||
 			typeof importedData.nextId !== "number" ||
 			importedData.nextId < 1
 		) {
