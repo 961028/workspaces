@@ -313,7 +313,8 @@ async function handleOpenWorkspace(workspaceId, sendResponse) {
 		}
 
 		// Sanitize URLs and open a new window.
-		const sanitizedUrls = sanitizeUrls(workspace.tabs);
+		const safeTabs = Array.isArray(workspace.tabs) ? workspace.tabs : [];
+		const sanitizedUrls = sanitizeUrls(safeTabs);
 		const newWindow = await browser.windows.create({url: sanitizedUrls});
 		workspace.windowId = newWindow.id;
 		workspaces[workspaceId] = workspace;
