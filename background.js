@@ -18,16 +18,16 @@ let windowLastActive = {};
  * @returns {Promise<{workspaces: Object, nextId: number}>} The stored workspaces and next available ID.
  */
 async function getWorkspaces() {
-  try {
-    const data = await browser.storage.local.get(["workspaces", "nextId"]);
-    return {
-      workspaces: data.workspaces || {},
-      nextId: data.nextId || 1,
-    };
-  } catch (error) {
-    console.error("Error fetching workspaces from storage:", error);
-    return { workspaces: {}, nextId: 1 };
-  }
+	try {
+		const data = await browser.storage.local.get(["workspaces", "nextId"]);
+		return {
+			workspaces: data.workspaces || {},
+			nextId: data.nextId || 1,
+		};
+	} catch (error) {
+		console.error("Error fetching workspaces from storage:", error);
+		return {workspaces: {}, nextId: 1};
+	}
 }
 
 /**
@@ -37,11 +37,11 @@ async function getWorkspaces() {
  * @returns {Promise<void>}
  */
 async function setWorkspaces(workspaces, nextId) {
-  try {
-    await browser.storage.local.set({ workspaces, nextId });
-  } catch (error) {
-    console.error("Error saving workspaces to storage:", error);
-  }
+	try {
+		await browser.storage.local.set({workspaces, nextId});
+	} catch (error) {
+		console.error("Error saving workspaces to storage:", error);
+	}
 }
 
 /**
@@ -51,22 +51,63 @@ async function setWorkspaces(workspaces, nextId) {
  * @returns {Promise<void>}
  */
 async function unsetWindowIdForClosedWorkspaces(closedWindowId) {
-  try {
-    const { workspaces, nextId } = await getWorkspaces();
-    let anyWorkspaceUpdated = false;
-    Object.keys(workspaces).forEach((workspaceId) => {
-      if (workspaces[workspaceId].windowId === closedWindowId) {
-        workspaces[workspaceId].windowId = null;
-        anyWorkspaceUpdated = true;
-      }
-    });
-    if (anyWorkspaceUpdated) {
-      await setWorkspaces(workspaces, nextId);
-      console.info("Unset windowId for workspace(s) associated with closed window", closedWindowId);
-    }
-  } catch (error) {
-    console.error("Error unsetting windowId for closed window", closedWindowId, error);
-  }
+	try {
+		const {workspaces, nextId} = await getWorkspaces();
+		let anyWorkspaceUpdated = false;
+		Object.keys(workspaces).forEach((workspaceId) => {
+			if (workspaces[workspaceId].windowId === closedWindowId) {
+				workspaces[workspaceId].windowId = null;
+				anyWorkspaceUpdated = true;
+			}
+		});
+		if (anyWorkspaceUpdated) {
+			await setWorkspaces(workspaces, nextId);
+			console.info(
+				"Unset windowId for workspace(s) associated with closed window",
+				closedWindowId,
+			);
+		}
+	} catch (error) {
+		console.error(
+			"Error unsetting windowId for closed window",
+			closedWindowId,
+			error,
+		);
+	}
+}
+
+/* ===== TAB GROUP HELPER ===== */
+/**
+ * Queries tab groups for a window and returns an array of group range descriptors.
+ * @param {number} windowId - The window to query groups for.
+ * @param {Array<Object>} tabs - The tabs already queried for that window.
+ * @returns {Promise<Array<{start: number, end: number, title: string, color: string, collapsed: boolean}>>}
+ */
+async function queryGroupRanges(windowId, tabs) {
+	const groupRanges = [];
+	if (browser.tabGroups) {
+		try {
+			const groups = await browser.tabGroups.query({windowId});
+			for (const group of groups) {
+				const groupTabs = tabs.filter(
+					(tab) => tab.groupId === group.id,
+				);
+				if (groupTabs.length > 0) {
+					const indices = groupTabs.map((tab) => tab.index);
+					groupRanges.push({
+						start: Math.min(...indices),
+						end: Math.max(...indices),
+						title: group.title || "",
+						color: group.color || "",
+						collapsed: group.collapsed || false,
+					});
+				}
+			}
+		} catch (e) {
+			console.warn("Could not query tabGroups:", e);
+		}
+	}
+	return groupRanges;
 }
 
 /* ===== URL HELPER ===== */
@@ -77,15 +118,19 @@ async function unsetWindowIdForClosedWorkspaces(closedWindowId) {
  * @returns {Array<string>} The sanitized URLs.
  */
 function sanitizeUrls(urls) {
-  return urls.map((url) => {
-    // If the URL starts with an allowed scheme or is exactly 'about:blank', return it.
-    if (url.startsWith("http://") || url.startsWith("https://") || url === "about:blank") {
-      return url;
-    }
-    // Otherwise, warn and replace with "about:blank".
-    console.warn("Blocked URL, replaced with about:blank:", url);
-    return "about:blank";
-  });
+	return urls.map((url) => {
+		// If the URL starts with an allowed scheme or is exactly 'about:blank', return it.
+		if (
+			url.startsWith("http://") ||
+			url.startsWith("https://") ||
+			url === "about:blank"
+		) {
+			return url;
+		}
+		// Otherwise, warn and replace with "about:blank".
+		console.warn("Blocked URL, replaced with about:blank:", url);
+		return "about:blank";
+	});
 }
 
 /* ===== DEBOUNCING LOGIC ===== */
@@ -95,15 +140,15 @@ function sanitizeUrls(urls) {
  * @param {number} windowId - The window ID that requires an update.
  */
 function scheduleWorkspaceUpdate(windowId) {
-  if (typeof windowId !== "number" || windowId < 0) return; // (Rule 2 & 7: Early return & validation)
+	if (typeof windowId !== "number" || windowId < 0) return; // (Rule 2 & 7: Early return & validation)
 
-  pendingUpdates.add(windowId);
+	pendingUpdates.add(windowId);
 
-  // Clear any existing timer to avoid scheduling duplicate updates.
-  if (updateTimer) {
-    clearTimeout(updateTimer);
-  }
-  updateTimer = setTimeout(processPendingUpdates, DEBOUNCE_DELAY);
+	// Clear any existing timer to avoid scheduling duplicate updates.
+	if (updateTimer) {
+		clearTimeout(updateTimer);
+	}
+	updateTimer = setTimeout(processPendingUpdates, DEBOUNCE_DELAY);
 }
 
 /**
@@ -112,19 +157,19 @@ function scheduleWorkspaceUpdate(windowId) {
  * @returns {Promise<void>}
  */
 async function processPendingUpdates() {
-  const { workspaces, nextId } = await getWorkspaces();
-  for (const winId of pendingUpdates) {
-    try {
-      const tabs = await browser.tabs.query({ windowId: winId });
-      await updateWorkspaceForWindow(workspaces, winId, tabs);
-      console.info("Updated workspace for window", winId);
-    } catch (error) {
-      console.error("Error updating workspace for window", winId, error);
-    }
-  }
-  await setWorkspaces(workspaces, nextId);
-  pendingUpdates.clear();
-  updateTimer = null;
+	const {workspaces, nextId} = await getWorkspaces();
+	for (const winId of pendingUpdates) {
+		try {
+			const tabs = await browser.tabs.query({windowId: winId});
+			await updateWorkspaceForWindow(workspaces, winId, tabs);
+			console.info("Updated workspace for window", winId);
+		} catch (error) {
+			console.error("Error updating workspace for window", winId, error);
+		}
+	}
+	await setWorkspaces(workspaces, nextId);
+	pendingUpdates.clear();
+	updateTimer = null;
 }
 
 /**
@@ -135,42 +180,21 @@ async function processPendingUpdates() {
  * @param {Array<Object>} tabs - The array of tab objects.
  */
 async function updateWorkspaceForWindow(workspaces, winId, tabs) {
-  if (!tabs.length) return; // (Rule 2: Use early return for empty arrays)
+	if (!tabs.length) return; // (Rule 2: Use early return for empty arrays)
 
-  // Determine the active tab (or fall back to the last tab if none is active)
-  const activeTab = tabs.find((tab) => tab.active) || tabs[tabs.length - 1];
-  let groupRanges = [];
-  if (browser.tabGroups) {
-    try {
-      const groups = await browser.tabGroups.query({ windowId: winId });
-      for (const group of groups) {
-        // Find all tabs in this group
-        const groupTabs = tabs.filter((tab) => tab.groupId === group.id);
-        if (groupTabs.length > 0) {
-          const indices = groupTabs.map((tab) => tab.index);
-          groupRanges.push({
-            start: Math.min(...indices),
-            end: Math.max(...indices),
-            title: group.title || '',
-            color: group.color || '',
-            collapsed: group.collapsed || false
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Could not query tabGroups:', e);
-    }
-  }
-  Object.keys(workspaces).forEach((wsId) => {
-    if (workspaces[wsId].windowId === winId) {
-      workspaces[wsId].tabs = tabs.map((tab) => tab.url);
-      workspaces[wsId].groupRanges = groupRanges;
-      // Only update title if no custom title has been set.
-      if (workspaces[wsId].customTitle === undefined) {
-        workspaces[wsId].title = activeTab ? activeTab.title : "";
-      }
-    }
-  });
+	// Determine the active tab (or fall back to the last tab if none is active)
+	const activeTab = tabs.find((tab) => tab.active) || tabs[tabs.length - 1];
+	const groupRanges = await queryGroupRanges(winId, tabs);
+	Object.keys(workspaces).forEach((wsId) => {
+		if (workspaces[wsId].windowId === winId) {
+			workspaces[wsId].tabs = tabs.map((tab) => tab.url);
+			workspaces[wsId].groupRanges = groupRanges;
+			// Only update title if no custom title has been set.
+			if (workspaces[wsId].customTitle === undefined) {
+				workspaces[wsId].title = activeTab ? activeTab.title : "";
+			}
+		}
+	});
 }
 
 /* ===== MESSAGE HANDLERS ===== */
@@ -180,31 +204,41 @@ async function updateWorkspaceForWindow(workspaces, winId, tabs) {
  * @returns {Promise<void>}
  */
 async function handleGetState(sendResponse) {
-  try {
-    const { workspaces } = await getWorkspaces();
-    const openWindows = await browser.windows.getAll({ populate: true });
-    const savedWorkspaces = Object.values(workspaces);
-    const savedWindowIds = savedWorkspaces.map((ws) => ws.windowId).filter((id) => id !== null);
+	try {
+		const {workspaces} = await getWorkspaces();
+		const openWindows = await browser.windows.getAll({populate: true});
+		const savedWorkspaces = Object.values(workspaces);
+		const savedWindowIds = savedWorkspaces
+			.map((ws) => ws.windowId)
+			.filter((id) => id !== null);
 
-    const unsavedWindows = openWindows
-      .filter((win) => !savedWindowIds.includes(win.id))
-      .map((win) => {
-        const activeTab = win.tabs.find((tab) => tab.active) || win.tabs[0];
-        return {
-          windowId: win.id,
-          title: activeTab && activeTab.title ? activeTab.title : "(No Tabs)",
-          lastActive: windowLastActive[win.id] || 0,
-          tabs: win.tabs || []
-        };
-      });
+		const unsavedWindows = openWindows
+			.filter((win) => !savedWindowIds.includes(win.id))
+			.map((win) => {
+				const activeTab =
+					win.tabs.find((tab) => tab.active) || win.tabs[0];
+				return {
+					windowId: win.id,
+					title:
+						activeTab && activeTab.title ?
+							activeTab.title
+						:	"(No Tabs)",
+					lastActive: windowLastActive[win.id] || 0,
+					tabs: win.tabs || [],
+				};
+			});
 
-    // Sort unsaved windows by most recent activity.
-    unsavedWindows.sort((a, b) => b.lastActive - a.lastActive);
-    sendResponse({ success: true, saved: savedWorkspaces, unsaved: unsavedWindows });
-  } catch (error) {
-    console.error("Error retrieving state:", error);
-    sendResponse({ success: false, error: error.message });
-  }
+		// Sort unsaved windows by most recent activity.
+		unsavedWindows.sort((a, b) => b.lastActive - a.lastActive);
+		sendResponse({
+			success: true,
+			saved: savedWorkspaces,
+			unsaved: unsavedWindows,
+		});
+	} catch (error) {
+		console.error("Error retrieving state:", error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /**
@@ -214,49 +248,31 @@ async function handleGetState(sendResponse) {
  * @returns {Promise<void>}
  */
 async function handleSaveWindow(windowId, sendResponse) {
-  try {
-    const tabs = await browser.tabs.query({ windowId });
-    if (!tabs || tabs.length === 0) {
-      return sendResponse({ success: false, error: "Window has no tabs." });
-    }
-    let groupRanges = [];
-    if (browser.tabGroups) {
-      try {
-        const groups = await browser.tabGroups.query({ windowId });
-        for (const group of groups) {
-          const groupTabs = tabs.filter((tab) => tab.groupId === group.id);
-          if (groupTabs.length > 0) {
-            const indices = groupTabs.map((tab) => tab.index);
-            groupRanges.push({
-              start: Math.min(...indices),
-              end: Math.max(...indices),
-              title: group.title || '',
-              color: group.color || '',
-              collapsed: group.collapsed || false
-            });
-          }
-        }
-      } catch (e) {
-        console.warn('Could not query tabGroups:', e);
-      }
-    }
-    const { workspaces, nextId } = await getWorkspaces();
-    const activeTab = tabs.find((tab) => tab.active) || tabs[0];
-    const newWorkspace = {
-      id: nextId,
-      windowId,
-      tabs: tabs.map((tab) => tab.url),
-      title: activeTab && activeTab.title ? activeTab.title : "",
-      groupRanges
-    };
-    workspaces[nextId] = newWorkspace;
-    await setWorkspaces(workspaces, nextId + 1);
-    console.info(`Saved window ${windowId} as workspace ${newWorkspace.id}`);
-    sendResponse({ success: true, workspace: newWorkspace });
-  } catch (error) {
-    console.error("Error saving window", windowId, error);
-    sendResponse({ success: false, error: error.message });
-  }
+	try {
+		const tabs = await browser.tabs.query({windowId});
+		if (!tabs || tabs.length === 0) {
+			return sendResponse({success: false, error: "Window has no tabs."});
+		}
+		const groupRanges = await queryGroupRanges(windowId, tabs);
+		const {workspaces, nextId} = await getWorkspaces();
+		const activeTab = tabs.find((tab) => tab.active) || tabs[0];
+		const newWorkspace = {
+			id: nextId,
+			windowId,
+			tabs: tabs.map((tab) => tab.url),
+			title: activeTab && activeTab.title ? activeTab.title : "",
+			groupRanges,
+		};
+		workspaces[nextId] = newWorkspace;
+		await setWorkspaces(workspaces, nextId + 1);
+		console.info(
+			`Saved window ${windowId} as workspace ${newWorkspace.id}`,
+		);
+		sendResponse({success: true, workspace: newWorkspace});
+	} catch (error) {
+		console.error("Error saving window", windowId, error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /**
@@ -266,63 +282,80 @@ async function handleSaveWindow(windowId, sendResponse) {
  * @returns {Promise<void>}
  */
 async function handleOpenWorkspace(workspaceId, sendResponse) {
-  try {
-    const { workspaces, nextId } = await getWorkspaces();
-    const workspace = workspaces[workspaceId];
+	try {
+		const {workspaces, nextId} = await getWorkspaces();
+		const workspace = workspaces[workspaceId];
 
-    if (!workspace) {
-      return sendResponse({ success: false, error: "Workspace not found." });
-    }
+		if (!workspace) {
+			return sendResponse({
+				success: false,
+				error: "Workspace not found.",
+			});
+		}
 
-    // Attempt to focus the window if it already exists.
-    if (workspace.windowId) {
-      try {
-        await browser.windows.update(workspace.windowId, { focused: true });
-        console.info("Focused existing window", workspace.windowId);
-        return sendResponse({ success: true, message: "Window focused." });
-      } catch (focusError) {
-        console.warn("Could not focus window, opening a new one instead:", focusError);
-      }
-    }
+		// Attempt to focus the window if it already exists.
+		if (workspace.windowId) {
+			try {
+				await browser.windows.update(workspace.windowId, {
+					focused: true,
+				});
+				console.info("Focused existing window", workspace.windowId);
+				return sendResponse({
+					success: true,
+					message: "Window focused.",
+				});
+			} catch (focusError) {
+				console.warn(
+					"Could not focus window, opening a new one instead:",
+					focusError,
+				);
+			}
+		}
 
-    // Sanitize URLs and open a new window.
-    const sanitizedUrls = sanitizeUrls(workspace.tabs);
-    const newWindow = await browser.windows.create({ url: sanitizedUrls });
-    workspace.windowId = newWindow.id;
-    workspaces[workspaceId] = workspace;
-    // Wait for all tabs to be ready
-    let tabs;
-    for (let i = 0; i < 10; ++i) {
-      tabs = await browser.tabs.query({ windowId: newWindow.id });
-      if (tabs.length === sanitizedUrls.length) break;
-      await new Promise((res) => setTimeout(res, 200));
-    }
-    // Reapply tab groups
-    if (browser.tabGroups && Array.isArray(workspace.groupRanges)) {
-      for (const group of workspace.groupRanges) {
-        const groupTabs = tabs.filter(
-          (tab) => tab.index >= group.start && tab.index <= group.end
-        );
-        if (groupTabs.length > 1) {
-          const tabIds = groupTabs.map((tab) => tab.id);
-          const groupId = await browser.tabs.group({ tabIds });
-          await browser.tabGroups.update(groupId, {
-            title: group.title,
-            color: group.color,
-            collapsed: group.collapsed
-          });
-        }
-      }
-    }
-    await new Promise((res) => setTimeout(res, 1000));
-    await setWindowTitlePrefaceForWorkspace(workspace, newWindow.id);
-    await setWorkspaces(workspaces, nextId);
-    console.info(`Opened workspace ${workspaceId} in new window ${newWindow.id}`);
-    sendResponse({ success: true, message: "New window opened.", windowId: newWindow.id });
-  } catch (error) {
-    console.error("Error opening workspace", workspaceId, error);
-    sendResponse({ success: false, error: error.message });
-  }
+		// Sanitize URLs and open a new window.
+		const sanitizedUrls = sanitizeUrls(workspace.tabs);
+		const newWindow = await browser.windows.create({url: sanitizedUrls});
+		workspace.windowId = newWindow.id;
+		workspaces[workspaceId] = workspace;
+		// Wait for all tabs to be ready
+		let tabs;
+		for (let i = 0; i < 10; ++i) {
+			tabs = await browser.tabs.query({windowId: newWindow.id});
+			if (tabs.length === sanitizedUrls.length) break;
+			await new Promise((res) => setTimeout(res, 200));
+		}
+		// Reapply tab groups
+		if (browser.tabGroups && Array.isArray(workspace.groupRanges)) {
+			for (const group of workspace.groupRanges) {
+				const groupTabs = tabs.filter(
+					(tab) => tab.index >= group.start && tab.index <= group.end,
+				);
+				if (groupTabs.length > 1) {
+					const tabIds = groupTabs.map((tab) => tab.id);
+					const groupId = await browser.tabs.group({tabIds});
+					await browser.tabGroups.update(groupId, {
+						title: group.title,
+						color: group.color,
+						collapsed: group.collapsed,
+					});
+				}
+			}
+		}
+		await new Promise((res) => setTimeout(res, 1000));
+		await setWindowTitlePrefaceForWorkspace(workspace, newWindow.id);
+		await setWorkspaces(workspaces, nextId);
+		console.info(
+			`Opened workspace ${workspaceId} in new window ${newWindow.id}`,
+		);
+		sendResponse({
+			success: true,
+			message: "New window opened.",
+			windowId: newWindow.id,
+		});
+	} catch (error) {
+		console.error("Error opening workspace", workspaceId, error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /**
@@ -332,19 +365,22 @@ async function handleOpenWorkspace(workspaceId, sendResponse) {
  * @returns {Promise<void>}
  */
 async function handleUnsaveWorkspace(workspaceId, sendResponse) {
-  try {
-    const { workspaces, nextId } = await getWorkspaces();
-    if (!workspaces[workspaceId]) {
-      return sendResponse({ success: false, error: "Workspace not found." });
-    }
-    delete workspaces[workspaceId];
-    await setWorkspaces(workspaces, nextId);
-    console.info("Removed workspace", workspaceId);
-    sendResponse({ success: true });
-  } catch (error) {
-    console.error("Error removing workspace", workspaceId, error);
-    sendResponse({ success: false, error: error.message });
-  }
+	try {
+		const {workspaces, nextId} = await getWorkspaces();
+		if (!workspaces[workspaceId]) {
+			return sendResponse({
+				success: false,
+				error: "Workspace not found.",
+			});
+		}
+		delete workspaces[workspaceId];
+		await setWorkspaces(workspaces, nextId);
+		console.info("Removed workspace", workspaceId);
+		sendResponse({success: true});
+	} catch (error) {
+		console.error("Error removing workspace", workspaceId, error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /**
@@ -355,28 +391,34 @@ async function handleUnsaveWorkspace(workspaceId, sendResponse) {
  * @returns {Promise<void>}
  */
 async function handleRenameWorkspace(workspaceId, newTitle, sendResponse) {
-  try {
-    const { workspaces, nextId } = await getWorkspaces();
-    if (!workspaces[workspaceId]) {
-      return sendResponse({ success: false, error: "Workspace not found." });
-    }
+	try {
+		const {workspaces, nextId} = await getWorkspaces();
+		if (!workspaces[workspaceId]) {
+			return sendResponse({
+				success: false,
+				error: "Workspace not found.",
+			});
+		}
 
-    // Update the workspace title
-    workspaces[workspaceId].customTitle = newTitle;
-    workspaces[workspaceId].title = newTitle;
+		// Update the workspace title
+		workspaces[workspaceId].customTitle = newTitle;
+		workspaces[workspaceId].title = newTitle;
 
-    // If the workspace has an associated window, update the window's title
-    if (workspaces[workspaceId].windowId) {
-      await setWindowTitlePrefaceForWorkspace(workspaces[workspaceId], workspaces[workspaceId].windowId);
-    }
+		// If the workspace has an associated window, update the window's title
+		if (workspaces[workspaceId].windowId) {
+			await setWindowTitlePrefaceForWorkspace(
+				workspaces[workspaceId],
+				workspaces[workspaceId].windowId,
+			);
+		}
 
-    await setWorkspaces(workspaces, nextId);
-    console.info(`Renamed workspace ${workspaceId} to ${newTitle}`);
-    sendResponse({ success: true });
-  } catch (error) {
-    console.error("Error renaming workspace", workspaceId, error);
-    sendResponse({ success: false, error: error.message });
-  }
+		await setWorkspaces(workspaces, nextId);
+		console.info(`Renamed workspace ${workspaceId} to ${newTitle}`);
+		sendResponse({success: true});
+	} catch (error) {
+		console.error("Error renaming workspace", workspaceId, error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /**
@@ -386,28 +428,28 @@ async function handleRenameWorkspace(workspaceId, newTitle, sendResponse) {
  * @returns {Promise<void>}
  */
 async function handleUpdateOrder(newOrder, sendResponse) {
-  try {
-    const { workspaces, nextId } = await getWorkspaces();
-    // Update workspaces included in the new order.
-    newOrder.forEach((wsId, index) => {
-      if (workspaces[wsId]) {
-        workspaces[wsId].order = index;
-      }
-    });
-    // For any workspace not in newOrder, assign a sequential order.
-    let order = newOrder.length;
-    Object.keys(workspaces).forEach((wsId) => {
-      if (!newOrder.includes(Number(wsId))) {
-        workspaces[wsId].order = order++;
-      }
-    });
-    await setWorkspaces(workspaces, nextId);
-    console.info("Updated workspace order:", newOrder);
-    sendResponse({ success: true });
-  } catch (error) {
-    console.error("Error updating workspace order:", error);
-    sendResponse({ success: false, error: error.message });
-  }
+	try {
+		const {workspaces, nextId} = await getWorkspaces();
+		// Update workspaces included in the new order.
+		newOrder.forEach((wsId, index) => {
+			if (workspaces[wsId]) {
+				workspaces[wsId].order = index;
+			}
+		});
+		// For any workspace not in newOrder, assign a sequential order.
+		let order = newOrder.length;
+		Object.keys(workspaces).forEach((wsId) => {
+			if (!newOrder.includes(Number(wsId))) {
+				workspaces[wsId].order = order++;
+			}
+		});
+		await setWorkspaces(workspaces, nextId);
+		console.info("Updated workspace order:", newOrder);
+		sendResponse({success: true});
+	} catch (error) {
+		console.error("Error updating workspace order:", error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /**
@@ -417,14 +459,14 @@ async function handleUpdateOrder(newOrder, sendResponse) {
  * @returns {Promise<void>}
  */
 async function focusWindow(windowId, sendResponse) {
-  try {
-    await browser.windows.update(windowId, { focused: true });
-    console.info("Focused window", windowId);
-    sendResponse({ success: true });
-  } catch (error) {
-    console.error("Error focusing window", windowId, error);
-    sendResponse({ success: false, error: error.message });
-  }
+	try {
+		await browser.windows.update(windowId, {focused: true});
+		console.info("Focused window", windowId);
+		sendResponse({success: true});
+	} catch (error) {
+		console.error("Error focusing window", windowId, error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /**
@@ -433,13 +475,13 @@ async function focusWindow(windowId, sendResponse) {
  * @returns {Promise<void>}
  */
 async function handleExportWorkspaces(sendResponse) {
-  try {
-    const { workspaces, nextId } = await getWorkspaces();
-    sendResponse({ success: true, data: { workspaces, nextId } });
-  } catch (error) {
-    console.error("Error exporting workspaces:", error);
-    sendResponse({ success: false, error: error.message });
-  }
+	try {
+		const {workspaces, nextId} = await getWorkspaces();
+		sendResponse({success: true, data: {workspaces, nextId}});
+	} catch (error) {
+		console.error("Error exporting workspaces:", error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /**
@@ -451,32 +493,35 @@ async function handleExportWorkspaces(sendResponse) {
  * @returns {Promise<void>}
  */
 async function handleImportWorkspace(msg, sendResponse) {
-  try {
-    const importedData = msg.data;
-    if (
-      !importedData ||
-      typeof importedData !== "object" ||
-      !importedData.workspaces ||
-      typeof importedData.workspaces !== "object" ||
-      typeof importedData.nextId !== "number" ||
-      importedData.nextId < 1
-    ) {
-      return sendResponse({ success: false, error: "Invalid import data." });
-    }
-    // Sanitize all URLs in imported workspaces
-    for (const wsId of Object.keys(importedData.workspaces)) {
-      const ws = importedData.workspaces[wsId];
-      if (ws && Array.isArray(ws.tabs)) {
-        ws.tabs = sanitizeUrls(ws.tabs);
-      }
-    }
-    await setWorkspaces(importedData.workspaces, importedData.nextId);
-    console.info("Imported workspaces successfully.");
-    sendResponse({ success: true });
-  } catch (error) {
-    console.error("Error importing workspaces:", error);
-    sendResponse({ success: false, error: error.message });
-  }
+	try {
+		const importedData = msg.data;
+		if (
+			!importedData ||
+			typeof importedData !== "object" ||
+			!importedData.workspaces ||
+			typeof importedData.workspaces !== "object" ||
+			typeof importedData.nextId !== "number" ||
+			importedData.nextId < 1
+		) {
+			return sendResponse({
+				success: false,
+				error: "Invalid import data.",
+			});
+		}
+		// Sanitize all URLs in imported workspaces
+		for (const wsId of Object.keys(importedData.workspaces)) {
+			const ws = importedData.workspaces[wsId];
+			if (ws && Array.isArray(ws.tabs)) {
+				ws.tabs = sanitizeUrls(ws.tabs);
+			}
+		}
+		await setWorkspaces(importedData.workspaces, importedData.nextId);
+		console.info("Imported workspaces successfully.");
+		sendResponse({success: true});
+	} catch (error) {
+		console.error("Error importing workspaces:", error);
+		sendResponse({success: false, error: error.message});
+	}
 }
 
 /* ===== MESSAGE ROUTER ===== */
@@ -484,40 +529,40 @@ async function handleImportWorkspace(msg, sendResponse) {
  * Routes incoming messages to the corresponding handler.
  */
 browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  switch (msg.action) {
-    case "getState":
-      handleGetState(sendResponse);
-      break;
-    case "saveWindow":
-      handleSaveWindow(msg.windowId, sendResponse);
-      break;
-    case "openWorkspace":
-      handleOpenWorkspace(msg.workspaceId, sendResponse);
-      break;
-    case "focusWindow":
-      focusWindow(msg.windowId, sendResponse);
-      break;
-    case "unsaveWorkspace":
-      handleUnsaveWorkspace(msg.workspaceId, sendResponse);
-      break;
-    case "renameWorkspace":
-      handleRenameWorkspace(msg.workspaceId, msg.newTitle, sendResponse);
-      break;
-    case "updateOrder":
-      handleUpdateOrder(msg.newOrder, sendResponse);
-      break;
-    case "exportWorkspaces":
-      handleExportWorkspaces(sendResponse);
-      break;
-    case "importWorkspaces":
-      handleImportWorkspace(msg, sendResponse);
-      break;
-    default:
-      console.warn("Unknown action:", msg.action);
-      sendResponse({ success: false, error: "Unknown action" });
-  }
-  // Return true to indicate asynchronous response handling.
-  return true;
+	switch (msg.action) {
+		case "getState":
+			handleGetState(sendResponse);
+			break;
+		case "saveWindow":
+			handleSaveWindow(msg.windowId, sendResponse);
+			break;
+		case "openWorkspace":
+			handleOpenWorkspace(msg.workspaceId, sendResponse);
+			break;
+		case "focusWindow":
+			focusWindow(msg.windowId, sendResponse);
+			break;
+		case "unsaveWorkspace":
+			handleUnsaveWorkspace(msg.workspaceId, sendResponse);
+			break;
+		case "renameWorkspace":
+			handleRenameWorkspace(msg.workspaceId, msg.newTitle, sendResponse);
+			break;
+		case "updateOrder":
+			handleUpdateOrder(msg.newOrder, sendResponse);
+			break;
+		case "exportWorkspaces":
+			handleExportWorkspaces(sendResponse);
+			break;
+		case "importWorkspaces":
+			handleImportWorkspace(msg, sendResponse);
+			break;
+		default:
+			console.warn("Unknown action:", msg.action);
+			sendResponse({success: false, error: "Unknown action"});
+	}
+	// Return true to indicate asynchronous response handling.
+	return true;
 });
 
 /* ===== EVENT LISTENERS ===== */
@@ -525,51 +570,62 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
  * Registers tab-related event listeners to schedule workspace updates.
  */
 function registerTabListeners() {
-  browser.tabs.onCreated.addListener((tab) => scheduleWorkspaceUpdate(tab.windowId));
-  browser.tabs.onRemoved.addListener((tabId, info) => scheduleWorkspaceUpdate(info.windowId));
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.title) scheduleWorkspaceUpdate(tab.windowId);
-  });
-  browser.tabs.onMoved.addListener((tabId, info) => scheduleWorkspaceUpdate(info.windowId));
-  browser.tabs.onAttached.addListener((tabId, info) => scheduleWorkspaceUpdate(info.newWindowId));
-  browser.tabs.onDetached.addListener((tabId, info) => scheduleWorkspaceUpdate(info.oldWindowId));
-  browser.tabs.onActivated.addListener((info) => scheduleWorkspaceUpdate(info.windowId));
+	browser.tabs.onCreated.addListener((tab) =>
+		scheduleWorkspaceUpdate(tab.windowId),
+	);
+	browser.tabs.onRemoved.addListener((tabId, info) =>
+		scheduleWorkspaceUpdate(info.windowId),
+	);
+	browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+		if (changeInfo.title) scheduleWorkspaceUpdate(tab.windowId);
+	});
+	browser.tabs.onMoved.addListener((tabId, info) =>
+		scheduleWorkspaceUpdate(info.windowId),
+	);
+	browser.tabs.onAttached.addListener((tabId, info) =>
+		scheduleWorkspaceUpdate(info.newWindowId),
+	);
+	browser.tabs.onDetached.addListener((tabId, info) =>
+		scheduleWorkspaceUpdate(info.oldWindowId),
+	);
+	browser.tabs.onActivated.addListener((info) =>
+		scheduleWorkspaceUpdate(info.windowId),
+	);
 }
 
 /**
  * Registers window-related event listeners for creation, removal, and focus changes.
  */
 function registerWindowListeners() {
- 
-  browser.windows.onRemoved.addListener((windowId) => {
-    unsetWindowIdForClosedWorkspaces(windowId);
-  });
-  
-  browser.windows.onFocusChanged.addListener((windowId) => {
-    if (windowId > 0) {
-      windowLastActive[windowId] = Date.now();
-      //console.info("Updated last active time for window", windowId);
-    }
-  });
+	browser.windows.onRemoved.addListener((windowId) => {
+		unsetWindowIdForClosedWorkspaces(windowId);
+	});
+
+	browser.windows.onFocusChanged.addListener((windowId) => {
+		if (windowId > 0) {
+			windowLastActive[windowId] = Date.now();
+			//console.info("Updated last active time for window", windowId);
+		}
+	});
 }
 
 /**
  * Registers tabGroups event listeners to schedule workspace updates for all relevant tab group changes.
  */
 function registerTabGroupListeners() {
-  if (!browser.tabGroups) return; // Defensive: not all browsers support tabGroups
-  browser.tabGroups.onCreated.addListener((group) => {
-    if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
-  });
-  browser.tabGroups.onUpdated.addListener((group) => {
-    if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
-  });
-  browser.tabGroups.onMoved.addListener((group) => {
-    if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
-  });
-  browser.tabGroups.onRemoved.addListener((group) => {
-    if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
-  });
+	if (!browser.tabGroups) return; // Defensive: not all browsers support tabGroups
+	browser.tabGroups.onCreated.addListener((group) => {
+		if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
+	});
+	browser.tabGroups.onUpdated.addListener((group) => {
+		if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
+	});
+	browser.tabGroups.onMoved.addListener((group) => {
+		if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
+	});
+	browser.tabGroups.onRemoved.addListener((group) => {
+		if (group.windowId != null) scheduleWorkspaceUpdate(group.windowId);
+	});
 }
 
 // Register all event listeners.
@@ -581,23 +637,23 @@ registerTabGroupListeners();
 
 // Helper to create the main menu item
 function createMainMenu(title = "Move tab to another Window") {
-  try {
-    browser.contextMenus.create({
-      id: "move-tabs",
-      title,
-      contexts: ["tab"]
-    });
-  } catch (e) {
-    // Ignore if already exists
-  }
+	try {
+		browser.contextMenus.create({
+			id: "move-tabs",
+			title,
+			contexts: ["tab"],
+		});
+	} catch (e) {
+		// Ignore if already exists
+	}
 }
 
 // 1. Create the main context menu item on install/startup
 browser.runtime.onInstalled.addListener(() => {
-  createMainMenu();
+	createMainMenu();
 });
 browser.runtime.onStartup.addListener(() => {
-  createMainMenu();
+	createMainMenu();
 });
 
 // Track last submenu window IDs for click handling
@@ -605,78 +661,100 @@ let lastSubmenuWindows = [];
 
 // 2. Dynamically update the menu label and submenus based on selection count and open windows
 browser.contextMenus.onShown.addListener(async (info, tab) => {
-  // Remove all menu items to rebuild cleanly
-  await browser.contextMenus.removeAll().catch(() => {});
+	// Remove all menu items to rebuild cleanly
+	await browser.contextMenus.removeAll().catch(() => {});
 
-  // Determine which tabs are selected
-  let tabs = [];
-  if (tab && tab.windowId) {
-    tabs = await browser.tabs.query({ windowId: tab.windowId, highlighted: true });
-    // If the clicked tab is not highlighted, fallback to just that tab
-    if (!tabs.some(t => t.id === tab.id)) {
-      tabs = [tab];
-    }
-  }
-  const count = tabs.length;
-  const title = count > 1 ? `Move ${count} Tabs to another Window` : "Move Tab to another Window";
-  createMainMenu(title);
+	// Determine which tabs are selected
+	let tabs = [];
+	if (tab && tab.windowId) {
+		tabs = await browser.tabs.query({
+			windowId: tab.windowId,
+			highlighted: true,
+		});
+		// If the clicked tab is not highlighted, fallback to just that tab
+		if (!tabs.some((t) => t.id === tab.id)) {
+			tabs = [tab];
+		}
+	}
+	const count = tabs.length;
+	const title =
+		count > 1 ?
+			`Move ${count} Tabs to another Window`
+		:	"Move Tab to another Window";
+	createMainMenu(title);
 
-  // Get all other windows and build submenus
-  let windows = await browser.windows.getAll({ populate: true });
-  lastSubmenuWindows = [];
-  for (let w of windows) {
-    if (!tab || w.id === tab.windowId) continue;
-    // Get window title from its active tab
-    let winTitle = "(No Title)";
-    if (w.tabs && w.tabs.length > 0) {
-      const activeTab = w.tabs.find(t => t.active) || w.tabs[0];
-      winTitle = activeTab && activeTab.title ? activeTab.title : "(No Title)";
-    }
-    // Count tabs in this window
-    const tabCount = w.tabs ? w.tabs.length : 0;
-    const label = `${winTitle} (${tabCount} Tab${tabCount === 1 ? '' : 's'})`;
-    browser.contextMenus.create({
-      id: `move-to-${w.id}`,
-      parentId: "move-tabs",
-      title: label,
-      contexts: ["tab"]
-    });
-    lastSubmenuWindows.push(w.id);
-  }
-  browser.contextMenus.refresh();
+	// Get all other windows and build submenus
+	let windows = await browser.windows.getAll({populate: true});
+	lastSubmenuWindows = [];
+	for (let w of windows) {
+		if (!tab || w.id === tab.windowId) continue;
+		// Get window title from its active tab
+		let winTitle = "(No Title)";
+		if (w.tabs && w.tabs.length > 0) {
+			const activeTab = w.tabs.find((t) => t.active) || w.tabs[0];
+			winTitle =
+				activeTab && activeTab.title ? activeTab.title : "(No Title)";
+		}
+		// Count tabs in this window
+		const tabCount = w.tabs ? w.tabs.length : 0;
+		const label = `${winTitle} (${tabCount} Tab${tabCount === 1 ? "" : "s"})`;
+		browser.contextMenus.create({
+			id: `move-to-${w.id}`,
+			parentId: "move-tabs",
+			title: label,
+			contexts: ["tab"],
+		});
+		lastSubmenuWindows.push(w.id);
+	}
+	browser.contextMenus.refresh();
 });
 
 // 3. Handle menu clicks: move tabs if submenu clicked
 browser.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (!tab || !tab.windowId) return;
-  if (info.menuItemId && info.menuItemId.startsWith("move-to-")) {
-    const destWindowId = parseInt(info.menuItemId.split("move-to-")[1], 10);
-    if (!Number.isInteger(destWindowId)) return;
-    // Find all highlighted tabs in the source window, or fallback to clicked tab
-    let tabsToMove = await browser.tabs.query({ windowId: tab.windowId, highlighted: true });
-    if (!tabsToMove.some(t => t.id === tab.id)) {
-      tabsToMove = [tab];
-    }
-    const tabIds = tabsToMove.map(t => t.id);
-    if (tabIds.length > 0) {
-      try {
-        await browser.tabs.move(tabIds, { windowId: destWindowId, index: -1 });
-      } catch (e) {
-        console.error("Failed to move tabs:", e);
-      }
-    }
-  }
+	if (!tab || !tab.windowId) return;
+	if (info.menuItemId && info.menuItemId.startsWith("move-to-")) {
+		const destWindowId = parseInt(info.menuItemId.split("move-to-")[1], 10);
+		if (!Number.isInteger(destWindowId)) return;
+		// Find all highlighted tabs in the source window, or fallback to clicked tab
+		let tabsToMove = await browser.tabs.query({
+			windowId: tab.windowId,
+			highlighted: true,
+		});
+		if (!tabsToMove.some((t) => t.id === tab.id)) {
+			tabsToMove = [tab];
+		}
+		const tabIds = tabsToMove.map((t) => t.id);
+		if (tabIds.length > 0) {
+			try {
+				await browser.tabs.move(tabIds, {
+					windowId: destWindowId,
+					index: -1,
+				});
+			} catch (e) {
+				console.error("Failed to move tabs:", e);
+			}
+		}
+	}
 });
 
 // Utility: Set window titlePreface if customTitle exists
 async function setWindowTitlePrefaceForWorkspace(workspace, windowId) {
-  if (workspace && workspace.customTitle && workspace.customTitle.trim() !== "") {
-    const titlePreface = `${workspace.customTitle} - `;
-    try {
-      await browser.windows.update(windowId, { titlePreface });
-      console.info(`Set window title for workspace ${workspace.id} to "${titlePreface}"`);
-    } catch (e) {
-      console.warn(`Failed to set window title for workspace ${workspace.id}:`, e);
-    }
-  }
+	if (
+		workspace &&
+		workspace.customTitle &&
+		workspace.customTitle.trim() !== ""
+	) {
+		const titlePreface = `${workspace.customTitle} - `;
+		try {
+			await browser.windows.update(windowId, {titlePreface});
+			console.info(
+				`Set window title for workspace ${workspace.id} to "${titlePreface}"`,
+			);
+		} catch (e) {
+			console.warn(
+				`Failed to set window title for workspace ${workspace.id}:`,
+				e,
+			);
+		}
+	}
 }
