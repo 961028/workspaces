@@ -441,14 +441,14 @@ class ContextMenu {
     return (
       this.contextMenuEl &&
       this.contextMenuEl.style.display === "block" &&
-      this.contextMenuOpenForWorkspaceId == workspaceId
+      this.contextMenuOpenForWorkspaceId === Number(workspaceId)
     );
   }
   isOpenForOtherWorkspace(workspaceId) {
     return (
       this.contextMenuEl &&
       this.contextMenuEl.style.display === "block" &&
-      this.contextMenuOpenForWorkspaceId != workspaceId
+      this.contextMenuOpenForWorkspaceId !== Number(workspaceId)
     );
   }
 }
