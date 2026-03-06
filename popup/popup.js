@@ -35,25 +35,105 @@ const CONTEXT_MENU_MARGIN = 20;
 const POINTER_DRAG_THRESHOLD = 5;
 
 class PopupApp {
+  constructor({ statusBar, workspaceList, themeManager, contextMenu } = {}) {
+    this.statusBar = statusBar;
+    this.workspaceList = workspaceList;
+    this.themeManager = themeManager;
+    this.contextMenu = contextMenu;
+  }
+
   /**
    * Initializes the popup by setting up context menus, drag-and-drop listeners, loading state, and theme.
    * @returns {Promise<void>}
    */
   async init() {
     try {
-      contextMenu.create();
-      await loadState();
-      document.addEventListener("click", () => contextMenu.hide());
-      await themeManager.setInitialStyle();
-      themeManager.listenForThemeUpdates();
+      this.contextMenu.create();
+      await this.loadState();
+      document.addEventListener("click", () => this.contextMenu.hide());
+      await this.themeManager.setInitialStyle();
+      this.themeManager.listenForThemeUpdates();
     } catch (error) {
       console.error("Error during popup initialization:", error);
+    }
+  }
+
+  /**
+   * Loads the state by retrieving the current window and fetching workspace data.
+   * @returns {Promise<void>}
+   */
+  async loadState() {
+    try {
+      const currentWindow = await browser.windows.getLastFocused();
+      if (!currentWindow || !currentWindow.id) {
+        console.warn("Could not retrieve current window info.");
+        this.statusBar.show("Failed to retrieve window information.", true);
+        return;
+      }
+      const currentWindowId = currentWindow.id;
+      const response = await browser.runtime.sendMessage({ action: "getState" });
+      if (response && response.success) {
+        this.workspaceList.updateSavedList(response.saved, currentWindowId);
+        this.workspaceList.updateUnsavedList(response.unsaved, currentWindowId);
+      } else {
+        this.statusBar.show(response?.error || "Failed to retrieve state.", true);
+      }
+    } catch (err) {
+      console.error("State load error:", err);
+      this.statusBar.show(err.message || "Error retrieving state.", true);
+    }
+  }
+
+  /**
+   * Sends a message to the background script and processes the response.
+   * @param {Object} message - The message payload.
+   * @returns {Promise<void>}
+   */
+  async sendMessage(message) {
+    if (!message || typeof message !== "object") {
+      console.error("Invalid message object:", message);
+      this.statusBar.show("Invalid message data.", true);
+      return;
+    }
+    try {
+      const response = await browser.runtime.sendMessage(message);
+      if (response && response.success) {
+        this.statusBar.show(response.message || "Action completed.", false);
+      } else {
+        this.statusBar.show(response?.error || "Action failed.", true);
+      }
+      await this.loadState();
+    } catch (error) {
+      console.error("Error in sendMessage:", error);
+      this.statusBar.show(error.message || "Communication error with background script.", true);
+    }
+  }
+
+  /**
+   * Persists the new order of saved workspaces by sending the updated order to the background script.
+   * Shows an error if the saved list element is not found.
+   */
+  persistSavedOrder() {
+    try {
+      const savedList = document.getElementById("saved-list");
+      if (!savedList) {
+        console.error("Cannot persist order; saved list element not found.");
+        this.statusBar.show("Failed to persist order.", true);
+        return;
+      }
+      const order = Array.from(savedList.querySelectorAll("li.saved-item")).map((item) =>
+        parseInt(item.dataset.wsid, 10)
+      );
+      this.sendMessage({ action: "updateOrder", newOrder: order });
+    } catch (error) {
+      console.error("Error in persistSavedOrder:", error);
+      this.statusBar.show("Failed to persist order.", true);
     }
   }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const app = new PopupApp();
+  const app = createPopupApp();
   try {
     await app.init();
   } catch (error) {
@@ -61,62 +141,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-/**
- * Loads the state by retrieving the current window and fetching workspace data.
- * @returns {Promise<void>}
- */
-async function loadState() {
-  try {
-    const currentWindow = await browser.windows.getLastFocused();
-    if (!currentWindow || !currentWindow.id) {
-      console.warn("Could not retrieve current window info.");
-      statusBar.show("Failed to retrieve window information.", true);
-      return;
-    }
-    const currentWindowId = currentWindow.id;
-    const response = await browser.runtime.sendMessage({ action: "getState" });
-    if (response && response.success) {
-      workspaceList.updateSavedList(response.saved, currentWindowId);
-      workspaceList.updateUnsavedList(response.unsaved, currentWindowId);
-    } else {
-      statusBar.show(response?.error || "Failed to retrieve state.", true);
-    }
-  } catch (err) {
-    console.error("State load error:", err);
-    statusBar.show(err.message || "Error retrieving state.", true);
-  }
-}
-
-/**
- * Sends a message to the background script and processes the response.
- * @param {Object} message - The message payload.
- * @returns {Promise<void>}
- */
-async function sendMessage(message) {
-  if (!message || typeof message !== "object") {
-    console.error("Invalid message object:", message);
-    statusBar.show("Invalid message data.", true);
-    return;
-  }
-  try {
-    const response = await browser.runtime.sendMessage(message);
-    if (response && response.success) {
-      statusBar.show(response.message || "Action completed.", false);
-    } else {
-      statusBar.show(response?.error || "Action failed.", true);
-    }
-    await loadState();
-  } catch (error) {
-    console.error("Error in sendMessage:", error);
-    statusBar.show(error.message || "Communication error with background script.", true);
-  }
-}
-
 class WorkspaceList {
-  constructor(dragAndDropManager, statusBar) {
+  constructor({ dragAndDropManager, statusBar, contextMenu } = {}) {
     this.dragAndDropManager = dragAndDropManager;
     this.statusBar = statusBar;
+    this.contextMenu = contextMenu;
+    this.sendMessage = null;
+    this.handleDragStartUnsaved = this.handleDragStartUnsaved.bind(this);
     this.faviconCache = {};
+  }
+
+  setSendMessageHandler(sendMessageHandler) {
+    this.sendMessage = sendMessageHandler;
   }
 
   updateSavedList(saved, currentWindowId) {
@@ -181,46 +217,46 @@ class WorkspaceList {
     });
     li.addEventListener("pointerup", (e) => {
       if (e.target.closest(".edit-btn") || e.target.closest("#context-menu")) return;
-      if (contextMenu.isOpenForOtherWorkspace(workspace.id)) {
-        contextMenu.hide();
+      if (this.contextMenu.isOpenForOtherWorkspace(workspace.id)) {
+        this.contextMenu.hide();
         pointerDragging = false;
         return;
       }
-      if (contextMenu.isOpenForWorkspace(workspace.id)) {
-        contextMenu.hide();
+      if (this.contextMenu.isOpenForWorkspace(workspace.id)) {
+        this.contextMenu.hide();
         pointerDragging = false;
         return;
       }
       if (!pointerDragging) {
-        sendMessage({ action: "openWorkspace", workspaceId: parseInt(workspace.id, 10) });
+        this.sendMessage?.({ action: "openWorkspace", workspaceId: parseInt(workspace.id, 10) });
       }
       pointerDragging = false;
     });
     li.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      if (contextMenu.isOpenForWorkspace(workspace.id)) {
-        contextMenu.hide();
+      if (this.contextMenu.isOpenForWorkspace(workspace.id)) {
+        this.contextMenu.hide();
         return;
       }
-      if (contextMenu.isOpenForOtherWorkspace(workspace.id)) {
-        contextMenu.hide();
+      if (this.contextMenu.isOpenForOtherWorkspace(workspace.id)) {
+        this.contextMenu.hide();
       }
-      contextMenu.show(e, workspace.id);
+      this.contextMenu.show(e, workspace.id);
     });
     const editBtn = li.querySelector(".edit-btn");
     if (editBtn) {
       editBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         e.preventDefault();
-        if (contextMenu.isOpenForWorkspace(workspace.id)) {
-          contextMenu.hide();
+        if (this.contextMenu.isOpenForWorkspace(workspace.id)) {
+          this.contextMenu.hide();
           return;
         }
-        if (contextMenu.isOpenForOtherWorkspace(workspace.id)) {
-          contextMenu.hide();
+        if (this.contextMenu.isOpenForOtherWorkspace(workspace.id)) {
+          this.contextMenu.hide();
         }
         const rect = editBtn.getBoundingClientRect();
-        contextMenu.show(
+        this.contextMenu.show(
           { clientX: rect.left, clientY: rect.bottom, preventDefault: () => {} },
           parseInt(workspace.id, 10)
         );
@@ -228,15 +264,15 @@ class WorkspaceList {
       editBtn.addEventListener("contextmenu", (e) => {
         e.stopPropagation();
         e.preventDefault();
-        if (contextMenu.isOpenForWorkspace(workspace.id)) {
-          contextMenu.hide();
+        if (this.contextMenu.isOpenForWorkspace(workspace.id)) {
+          this.contextMenu.hide();
           return;
         }
-        if (contextMenu.isOpenForOtherWorkspace(workspace.id)) {
-          contextMenu.hide();
+        if (this.contextMenu.isOpenForOtherWorkspace(workspace.id)) {
+          this.contextMenu.hide();
         }
         const rect = editBtn.getBoundingClientRect();
-        contextMenu.show(
+        this.contextMenu.show(
           { clientX: rect.left, clientY: rect.bottom, preventDefault: () => {} },
           parseInt(workspace.id, 10)
         );
@@ -294,11 +330,11 @@ class WorkspaceList {
     this.dragAndDropManager.addListItemEvents(li, {
         onDragStart: this.handleDragStartUnsaved,
         onClick: () => {
-          sendMessage({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
+          this.sendMessage?.({ action: "focusWindow", windowId: parseInt(win.windowId, 10) });
         },
         buttonSelector: ".save-btn",
         onButtonClick: () => {
-          sendMessage({ action: "saveWindow", windowId: parseInt(win.windowId, 10) });
+          this.sendMessage?.({ action: "saveWindow", windowId: parseInt(win.windowId, 10) });
         }
       });
     return li;
@@ -311,7 +347,7 @@ class WorkspaceList {
       e.dataTransfer.effectAllowed = "copy";
     } catch (error) {
       console.error("Error in handleDragStartUnsaved:", error);
-      statusBar.show("Failed to start drag operation.", true);
+      this.statusBar.show("Failed to start drag operation.", true);
     }
   }
 
@@ -344,9 +380,15 @@ class WorkspaceList {
 }
 
 class ContextMenu {
-  constructor() {
+  constructor({ statusBar } = {}) {
+    this.statusBar = statusBar;
     this.contextMenuEl = null;
     this.contextMenuOpenForWorkspaceId = null;
+    this.sendMessage = null;
+  }
+
+  setSendMessageHandler(sendMessageHandler) {
+    this.sendMessage = sendMessageHandler;
   }
 
   createContextMenuItem(label, className, onClick) {
@@ -368,14 +410,14 @@ class ContextMenu {
       document.body.appendChild(this.contextMenuEl);
     } catch (error) {
       console.error("Error creating context menu:", error);
-      statusBar.show("Failed to create context menu.", true);
+      this.statusBar.show("Failed to create context menu.", true);
     }
   }
 
   show(e, workspaceId) {
     if (!this.contextMenuEl) {
       console.error("Context menu not initialized.");
-      statusBar.show("Context menu not initialized.", true);
+      this.statusBar.show("Context menu not initialized.", true);
       return;
     }
     try {
@@ -407,7 +449,7 @@ class ContextMenu {
       this.contextMenuEl.dataset.wsid = workspaceId;
     } catch (error) {
       console.error("Error showing context menu:", error);
-      statusBar.show("Failed to show context menu.", true);
+      this.statusBar.show("Failed to show context menu.", true);
     }
   }
 
@@ -425,7 +467,7 @@ class ContextMenu {
     this.hide();
     const newTitle = prompt("Enter new name for workspace:");
     if (newTitle && newTitle.trim() !== "") {
-      sendMessage({ action: "renameWorkspace", workspaceId: wsid, newTitle: newTitle.trim() });
+      this.sendMessage?.({ action: "renameWorkspace", workspaceId: wsid, newTitle: newTitle.trim() });
     } else {
       console.info("Rename canceled due to empty input.");
     }
@@ -434,7 +476,7 @@ class ContextMenu {
   onUnsaveClick() {
     const wsid = parseInt(this.contextMenuEl?.dataset.wsid, 10);
     this.hide();
-    sendMessage({ action: "unsaveWorkspace", workspaceId: wsid });
+    this.sendMessage?.({ action: "unsaveWorkspace", workspaceId: wsid });
   }
 
   isOpenForWorkspace(workspaceId) {
@@ -466,8 +508,13 @@ class DragAndDropManager {
     this.draggableItem = null;
     this.pointerStartX = 0;
     this.pointerStartY = 0;
+    this.persistSavedOrder = null;
     // Store handler reference for cleanup
     this._boundPointerDownHandler = this.pointerDownHandler.bind(this);
+  }
+
+  setPersistSavedOrderHandler(persistSavedOrderHandler) {
+    this.persistSavedOrder = persistSavedOrderHandler;
   }
 
   /**
@@ -514,7 +561,7 @@ class DragAndDropManager {
     this.removePointerListeners();
     this.draggableItem.releasePointerCapture(e.pointerId);
     this.applyNewItemsOrder();
-    persistSavedOrder();
+    this.persistSavedOrder?.();
     this.cleanup();
   };
 
@@ -827,30 +874,24 @@ class ThemeManager {
   }
 }
 
-/**
- * Persists the new order of saved workspaces by sending the updated order to the background script.
- * Shows an error if the saved list element is not found.
- */
-function persistSavedOrder() {
-  try {
-    const savedList = document.getElementById("saved-list");
-    if (!savedList) {
-      console.error("Cannot persist order; saved list element not found.");
-      statusBar.show("Failed to persist order.", true);
-      return;
-    }
-    const order = Array.from(savedList.querySelectorAll("li.saved-item")).map((item) =>
-      parseInt(item.dataset.wsid, 10)
-    );
-    sendMessage({ action: "updateOrder", newOrder: order });
-  } catch (error) {
-    console.error("Error in persistSavedOrder:", error);
-    statusBar.show("Failed to persist order.", true);
-  }
-}
+function createPopupApp() {
+  const statusBar = new StatusBar();
+  const dragAndDropManager = new DragAndDropManager();
+  const contextMenu = new ContextMenu({ statusBar });
+  const workspaceList = new WorkspaceList({ dragAndDropManager, statusBar, contextMenu });
+  const themeManager = new ThemeManager();
 
-const dragAndDropManager = new DragAndDropManager();
-const statusBar = new StatusBar();
-const workspaceList = new WorkspaceList(dragAndDropManager, statusBar);
-const themeManager = new ThemeManager();
-const contextMenu = new ContextMenu();
+  const app = new PopupApp({
+    statusBar,
+    workspaceList,
+    themeManager,
+    contextMenu,
+  });
+
+  const sendMessageHandler = app.sendMessage.bind(app);
+  workspaceList.setSendMessageHandler(sendMessageHandler);
+  contextMenu.setSendMessageHandler(sendMessageHandler);
+  dragAndDropManager.setPersistSavedOrderHandler(app.persistSavedOrder.bind(app));
+
+  return app;
+}
