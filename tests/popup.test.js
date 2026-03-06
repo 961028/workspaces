@@ -79,9 +79,7 @@ describe("popup.js", () => {
 
 		test("sets status element text", () => {
 			statusBar.show("Hello", false);
-			expect(document.getElementById("status").textContent).toBe(
-				"Hello",
-			);
+			expect(document.getElementById("status").textContent).toBe("Hello");
 		});
 
 		test("applies error class when isError is true", () => {
@@ -91,9 +89,7 @@ describe("popup.js", () => {
 
 		test("applies success class when isError is false", () => {
 			statusBar.show("Done", false);
-			expect(document.getElementById("status").className).toBe(
-				"success",
-			);
+			expect(document.getElementById("status").className).toBe("success");
 		});
 
 		test("clears message after STATUS_DISPLAY_TIME", () => {
@@ -142,16 +138,12 @@ describe("popup.js", () => {
 		test("applyThemeStyle does nothing when theme has no colors", () => {
 			// Should not throw
 			expect(() => themeManager.applyThemeStyle({})).not.toThrow();
-			expect(() =>
-				themeManager.applyThemeStyle(null),
-			).not.toThrow();
+			expect(() => themeManager.applyThemeStyle(null)).not.toThrow();
 		});
 
 		test("listenForThemeUpdates registers listener", () => {
 			themeManager.listenForThemeUpdates();
-			expect(
-				browserMock.theme.onUpdated.addListener,
-			).toHaveBeenCalled();
+			expect(browserMock.theme.onUpdated.addListener).toHaveBeenCalled();
 		});
 	});
 
@@ -307,16 +299,12 @@ describe("popup.js", () => {
 		test("show() adjusts position to stay within viewport", () => {
 			contextMenu.create();
 			// Force the context menu to have dimensions
-			Object.defineProperty(
-				contextMenu.contextMenuEl,
-				"offsetWidth",
-				{ value: 200 },
-			);
-			Object.defineProperty(
-				contextMenu.contextMenuEl,
-				"offsetHeight",
-				{ value: 100 },
-			);
+			Object.defineProperty(contextMenu.contextMenuEl, "offsetWidth", {
+				value: 200,
+			});
+			Object.defineProperty(contextMenu.contextMenuEl, "offsetHeight", {
+				value: 100,
+			});
 			// Simulate showing near bottom-right edge with small viewport
 			Object.defineProperty(window, "innerWidth", {
 				value: 300,
@@ -330,10 +318,7 @@ describe("popup.js", () => {
 				{ clientX: 250, clientY: 180, preventDefault: () => {} },
 				1,
 			);
-			const left = parseInt(
-				contextMenu.contextMenuEl.style.left,
-				10,
-			);
+			const left = parseInt(contextMenu.contextMenuEl.style.left, 10);
 			const top = parseInt(contextMenu.contextMenuEl.style.top, 10);
 			// Should be clamped to not exceed viewport - margin
 			expect(left).toBeLessThanOrEqual(300 - 200 - 20);
@@ -622,9 +607,7 @@ describe("popup.js", () => {
 					},
 				];
 				workspaceList.updateSavedList(saved, 10);
-				const item = document.querySelector(
-					"#saved-list .saved-item",
-				);
+				const item = document.querySelector("#saved-list .saved-item");
 				expect(item.classList.contains("highlight")).toBe(true);
 			});
 
@@ -639,9 +622,7 @@ describe("popup.js", () => {
 					},
 				];
 				workspaceList.updateSavedList(saved, 99);
-				const item = document.querySelector(
-					"#saved-list .saved-item",
-				);
+				const item = document.querySelector("#saved-list .saved-item");
 				expect(item.classList.contains("highlight")).toBe(false);
 			});
 		});
@@ -678,9 +659,7 @@ describe("popup.js", () => {
 					{ id: 1, title: "T", tabs: ["a"] },
 					0,
 				);
-				expect(li.querySelector(".subtitle").textContent).toBe(
-					"1 Tab",
-				);
+				expect(li.querySelector(".subtitle").textContent).toBe("1 Tab");
 			});
 
 			test("fallback title when workspace has no title", () => {
@@ -738,9 +717,7 @@ describe("popup.js", () => {
 			});
 
 			test("adds <hr> separator when unsaved items exist", () => {
-				const unsaved = [
-					{ windowId: 10, title: "Win1", tabs: [] },
-				];
+				const unsaved = [{windowId: 10, title: "Win1", tabs: []}];
 				workspaceList.updateUnsavedList(unsaved, 0);
 				const hr = document.querySelector("hr");
 				expect(hr).toBeTruthy();
@@ -812,10 +789,7 @@ describe("popup.js", () => {
 					currentTarget: li,
 				};
 				workspaceList.handleDragStartUnsaved(e);
-				expect(setData).toHaveBeenCalledWith(
-					"unsavedWindowId",
-					"42",
-				);
+				expect(setData).toHaveBeenCalledWith("unsavedWindowId", "42");
 			});
 
 			test("does nothing when event lacks dataTransfer", () => {
@@ -949,6 +923,40 @@ describe("popup.js", () => {
 			expect(status.textContent).toContain("Invalid");
 		});
 
+		test("sendMessage handles runtime.sendMessage rejection", async () => {
+			browserMock.runtime.sendMessage.mockRejectedValue(
+				new Error("extension disconnected"),
+			);
+			jest.spyOn(app, "loadState").mockResolvedValue();
+			await app.sendMessage({action: "test"});
+			const status = document.getElementById("status");
+			expect(status.className).toBe("error");
+			expect(status.textContent).toContain("extension disconnected");
+		});
+
+		test("loadState handles missing currentWindow id", async () => {
+			browserMock.windows.getLastFocused.mockResolvedValue({});
+			await app.loadState();
+			const status = document.getElementById("status");
+			expect(status.textContent).toContain("Failed to retrieve window");
+		});
+
+		test("loadState handles getLastFocused rejection", async () => {
+			browserMock.windows.getLastFocused.mockRejectedValue(
+				new Error("no window"),
+			);
+			await app.loadState();
+			const status = document.getElementById("status");
+			expect(status.className).toBe("error");
+		});
+
+		test("persistSavedOrder handles missing saved-list element", () => {
+			document.getElementById("saved-list").remove();
+			app.persistSavedOrder();
+			const status = document.getElementById("status");
+			expect(status.textContent).toContain("Failed to persist order");
+		});
+
 		test("persistSavedOrder reads wsid from DOM and sends updateOrder", async () => {
 			// Set up some saved items in the list
 			const list = document.getElementById("saved-list");
@@ -962,9 +970,7 @@ describe("popup.js", () => {
 			list.appendChild(li1);
 			list.appendChild(li2);
 
-			const sendSpy = jest
-				.spyOn(app, "sendMessage")
-				.mockResolvedValue();
+			const sendSpy = jest.spyOn(app, "sendMessage").mockResolvedValue();
 			app.persistSavedOrder();
 			expect(sendSpy).toHaveBeenCalledWith({
 				action: "updateOrder",

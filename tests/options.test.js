@@ -19,12 +19,18 @@ function loadOptionsPage(browserMock) {
 	// Install browser mock
 	global.browser = browserMock;
 
-	// Execute options.js
+	// Execute options.js and expose functions to global scope
 	const code = fs.readFileSync(
 		path.join(__dirname, "..", "options", "options.js"),
 		"utf-8",
 	);
-	(0, eval)(code);
+	const expose = `
+globalThis.showStatus = showStatus;
+globalThis.processImportData = processImportData;
+globalThis.exportWorkspaces = exportWorkspaces;
+globalThis.EXPORT_FILENAME = EXPORT_FILENAME;
+`;
+	(0, eval)(code + expose);
 }
 
 describe("options.js", () => {
@@ -49,97 +55,157 @@ describe("options.js", () => {
 		});
 
 		test("sets #status element text", () => {
-			// showStatus is in global scope from eval
-			const statusEl = document.getElementById("status");
-			// Trigger manually since it's in global scope
-			statusEl.textContent = "";
-			// We need to call showStatus — it's in the eval scope.
-			// Fire it via simulating the function
-			statusEl.textContent = "Test message";
-			statusEl.style.color = "green";
-			expect(statusEl.textContent).toBe("Test message");
+			showStatus("Test message", false);
+			expect(document.getElementById("status").textContent).toBe(
+				"Test message",
+			);
 		});
 
 		test("sets color red for errors", () => {
-			const statusEl = document.getElementById("status");
-			statusEl.style.color = "red";
-			expect(statusEl.style.color).toBe("red");
+			showStatus("Error!", true);
+			expect(document.getElementById("status").style.color).toBe("red");
 		});
 
 		test("sets color green for success", () => {
-			const statusEl = document.getElementById("status");
-			statusEl.style.color = "green";
-			expect(statusEl.style.color).toBe("green");
+			showStatus("OK", false);
+			expect(document.getElementById("status").style.color).toBe("green");
 		});
 
 		test("clears message after 3 seconds", () => {
-			const statusEl = document.getElementById("status");
-			statusEl.textContent = "Temp";
-			setTimeout(() => {
-				statusEl.textContent = "";
-			}, 3000);
+			showStatus("Temp", false);
+			expect(document.getElementById("status").textContent).toBe("Temp");
 			jest.advanceTimersByTime(3000);
-			expect(statusEl.textContent).toBe("");
+			expect(document.getElementById("status").textContent).toBe("");
+		});
+
+		test("does nothing when #status element is missing", () => {
+			document.getElementById("status").remove();
+			expect(() => showStatus("Test", false)).not.toThrow();
 		});
 	});
 
 	// ─── 3.2 processImportData ──────────────────────────────────────
 	describe("processImportData()", () => {
+		beforeEach(() => {
+			loadOptionsPage(browserMock);
+		});
+
 		test("sends importWorkspaces message for valid JSON", async () => {
 			browserMock.runtime.sendMessage.mockResolvedValue({
 				success: true,
 			});
-			loadOptionsPage(browserMock);
+			const validData = JSON.stringify({workspaces: {}, nextId: 1});
+			await processImportData(validData);
+			expect(browserMock.runtime.sendMessage).toHaveBeenCalledWith({
+				action: "importWorkspaces",
+				data: {workspaces: {}, nextId: 1},
+			});
+		});
 
-			// Simulate import by firing the file input change event
-			const fileInput = document.getElementById("import-file");
-			expect(fileInput).toBeTruthy();
+		test("shows success status for valid import", async () => {
+			browserMock.runtime.sendMessage.mockResolvedValue({
+				success: true,
+			});
+			await processImportData(
+				JSON.stringify({workspaces: {}, nextId: 1}),
+			);
+			expect(document.getElementById("status").textContent).toBe(
+				"Import successful.",
+			);
+			expect(document.getElementById("status").style.color).toBe("green");
+		});
 
-			// We have to call the global processImportData through the eval scope
-			// Instead, we test via the file input mechanism
+		test("shows error status when background returns failure", async () => {
+			browserMock.runtime.sendMessage.mockResolvedValue({
+				success: false,
+				error: "Invalid import data.",
+			});
+			await processImportData(
+				JSON.stringify({workspaces: {}, nextId: 1}),
+			);
+			expect(document.getElementById("status").textContent).toBe(
+				"Invalid import data.",
+			);
+			expect(document.getElementById("status").style.color).toBe("red");
 		});
 
 		test("shows error for malformed JSON", async () => {
-			loadOptionsPage(browserMock);
+			await processImportData("not valid json {{{");
 			const statusEl = document.getElementById("status");
-			// The processImportData function is not directly accessible,
-			// but we can verify the DOM is wired up
-			expect(statusEl).toBeTruthy();
+			expect(statusEl.style.color).toBe("red");
+			expect(statusEl.textContent.length).toBeGreaterThan(0);
+		});
+
+		test("shows generic error when sendMessage rejects", async () => {
+			browserMock.runtime.sendMessage.mockRejectedValue(
+				new Error("connection lost"),
+			);
+			await processImportData(
+				JSON.stringify({workspaces: {}, nextId: 1}),
+			);
+			const statusEl = document.getElementById("status");
+			expect(statusEl.style.color).toBe("red");
+			expect(statusEl.textContent).toBe("connection lost");
 		});
 	});
 
 	// ─── 3.3 exportWorkspaces ───────────────────────────────────────
 	describe("exportWorkspaces()", () => {
-		test("export button is wired up", () => {
-			loadOptionsPage(browserMock);
-			const exportBtn = document.getElementById("export-btn");
-			expect(exportBtn).toBeTruthy();
-		});
-
-		test("sends exportWorkspaces message on click", async () => {
-			browserMock.runtime.sendMessage.mockResolvedValue({
-				success: true,
-				data: { workspaces: {}, nextId: 1 },
-			});
-
-			// Mock URL.createObjectURL
+		beforeEach(() => {
 			global.URL.createObjectURL = jest.fn(() => "blob:fake");
 			global.URL.revokeObjectURL = jest.fn();
-
 			loadOptionsPage(browserMock);
+		});
 
-			// Fire DOMContentLoaded to wire up buttons
-			document.dispatchEvent(new Event("DOMContentLoaded"));
+		test("export button is wired up", () => {
+			expect(document.getElementById("export-btn")).toBeTruthy();
+		});
 
-			const exportBtn = document.getElementById("export-btn");
-			exportBtn.click();
-
-			// Wait for async sendMessage to resolve
-			await jest.advanceTimersByTimeAsync(0);
-
+		test("sends exportWorkspaces message and triggers download", async () => {
+			browserMock.runtime.sendMessage.mockResolvedValue({
+				success: true,
+				data: {workspaces: {1: {id: 1}}, nextId: 2},
+			});
+			await exportWorkspaces();
 			expect(browserMock.runtime.sendMessage).toHaveBeenCalledWith({
 				action: "exportWorkspaces",
 			});
+			expect(global.URL.createObjectURL).toHaveBeenCalled();
+			expect(global.URL.revokeObjectURL).toHaveBeenCalled();
+		});
+
+		test("shows success status after export", async () => {
+			browserMock.runtime.sendMessage.mockResolvedValue({
+				success: true,
+				data: {workspaces: {}, nextId: 1},
+			});
+			await exportWorkspaces();
+			expect(document.getElementById("status").textContent).toBe(
+				"Export successful.",
+			);
+		});
+
+		test("shows error when export fails", async () => {
+			browserMock.runtime.sendMessage.mockResolvedValue({
+				success: false,
+				error: "Storage error",
+			});
+			await exportWorkspaces();
+			expect(document.getElementById("status").textContent).toBe(
+				"Storage error",
+			);
+			expect(document.getElementById("status").style.color).toBe("red");
+		});
+
+		test("shows error when sendMessage rejects", async () => {
+			browserMock.runtime.sendMessage.mockRejectedValue(
+				new Error("disconnected"),
+			);
+			await exportWorkspaces();
+			expect(document.getElementById("status").textContent).toBe(
+				"disconnected",
+			);
+			expect(document.getElementById("status").style.color).toBe("red");
 		});
 	});
 
