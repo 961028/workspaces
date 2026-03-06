@@ -1030,39 +1030,51 @@ describe("background.js", () => {
 		test("routes saveWindow correctly", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener({action: "saveWindow", windowId: 10}, {}, sendResponse);
+			const result = listener(
+				{action: "saveWindow", windowId: 10},
+				{},
+				sendResponse,
+			);
+			expect(result).toBe(true);
 		});
 
 		test("routes openWorkspace correctly", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener(
+			const result = listener(
 				{action: "openWorkspace", workspaceId: 1},
 				{},
 				sendResponse,
 			);
+			expect(result).toBe(true);
 		});
 
 		test("routes focusWindow correctly", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener({action: "focusWindow", windowId: 10}, {}, sendResponse);
+			const result = listener(
+				{action: "focusWindow", windowId: 10},
+				{},
+				sendResponse,
+			);
+			expect(result).toBe(true);
 		});
 
 		test("routes unsaveWorkspace correctly", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener(
+			const result = listener(
 				{action: "unsaveWorkspace", workspaceId: 1},
 				{},
 				sendResponse,
 			);
+			expect(result).toBe(true);
 		});
 
 		test("routes renameWorkspace correctly", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener(
+			const result = listener(
 				{
 					action: "renameWorkspace",
 					workspaceId: 1,
@@ -1071,28 +1083,40 @@ describe("background.js", () => {
 				{},
 				sendResponse,
 			);
+			expect(result).toBe(true);
 		});
 
 		test("routes updateOrder correctly", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener(
+			const result = listener(
 				{action: "updateOrder", newOrder: [1, 2]},
 				{},
 				sendResponse,
 			);
+			expect(result).toBe(true);
 		});
 
 		test("routes exportWorkspaces correctly", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener({action: "exportWorkspaces"}, {}, sendResponse);
+			const result = listener(
+				{action: "exportWorkspaces"},
+				{},
+				sendResponse,
+			);
+			expect(result).toBe(true);
 		});
 
 		test("routes importWorkspaces correctly", () => {
 			const listener = browserMock.runtime.onMessage._listeners[0];
 			const sendResponse = jest.fn();
-			listener({action: "importWorkspaces", data: {}}, {}, sendResponse);
+			const result = listener(
+				{action: "importWorkspaces", data: {}},
+				{},
+				sendResponse,
+			);
+			expect(result).toBe(true);
 		});
 
 		test("logs warning for unknown action", () => {
@@ -1163,9 +1187,12 @@ describe("background.js", () => {
 				nextId: 2,
 			});
 			const listener = browserMock.windows.onRemoved._listeners[0];
-			await listener(42);
-			// It should try to set workspaces with null windowId
-			// (async, so might need to await)
+			listener(42);
+			// The listener fires unsetWindowIdForClosedWorkspaces without await,
+			// so we flush the microtask queue for the async work to complete.
+			await jest.advanceTimersByTimeAsync(0);
+			const setCall = browserMock.storage.local.set.mock.calls[0][0];
+			expect(setCall.workspaces[1].windowId).toBeNull();
 		});
 
 		test("onFocusChanged updates windowLastActive", () => {
@@ -1317,9 +1344,7 @@ describe("background.js", () => {
 			const msg = {data: {workspaces: [], nextId: 1}};
 			const sendResponse = jest.fn();
 			await ctx.handleImportWorkspace(msg, sendResponse);
-			// Array is typeof 'object', so this passes validation — check behavior
-			// The real question is: does the import succeed with an array?
-			// Arrays pass typeof === 'object', so this exposes a gap.
+			expect(sendResponse.mock.calls[0][0].success).toBe(false);
 		});
 
 		test("rejects string as data", async () => {
